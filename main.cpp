@@ -25,7 +25,7 @@
 //Servo PWM cycle
 #define     SERVO_PWM_CYCLE     33332   /* SERVO PWM period         */
 /* 16ms   P0φ/16 = 0.48us   */
-#define     SERVO_CENTER        3250    /* 1.5ms / 0.48us - 1 = 3124*/
+#define     SERVO_CENTER        3100    /* 1.5ms / 0.48us - 1 = 3124*/
 #define     HANDLE_STEP         18      /* 1 degree value           */
 
 #define     THRESHOLD           180     /* Binarization function only */
@@ -276,6 +276,7 @@ char                    LR;             //クランク、レーンチェンジ�
 char                    mem_lr[] = {'R','R','R','L','R','e'};     //クランク、レーンチェンジの記憶
 int                     mem_crk[] = {0,300,290,0,260,-1};           //クランクのブレーキ力
 int                     n_lr = 0;           //クランク、レーンチェンジのポジション
+char					fall_flag;			//コースから脱輪を検知しない場合「1」　検知する場合「0」
 const int revolution_difference[] = {   /* diff function only       */
     100, 98, 97, 95, 93,
     92, 90, 88, 87, 85,
@@ -299,6 +300,8 @@ int main( void )
     initFlag = 1;                       /* Initialization start     */
     int sp;
     int hd;
+    fall_flag = 0;
+
     /* Camera start */
     init_Camera();
     /* wait to stabilize NTSC signal (about 170ms) */
@@ -606,7 +609,7 @@ int main( void )
          		break;
 
          	case 11:
-            	if( crank && cntGate > 2000){
+            	if( crank && cntGate > 500){
             		pattern = 30;
             		cnt1 = 0;
                     break;
@@ -625,15 +628,31 @@ int main( void )
             	}else if(sp < 10){
             		sp = sp*3;
             		hd = SenVal_Center * 15/10;
-            	}else{
-            		sp = sp*4;
-            		hd = SenVal_Center * 23/10;
+              	}else if(sp < 15){
+                    		sp = sp*3;
+                    		hd = SenVal_Center * 15/10;
+              	}else{
+            		sp = sp*5;
+            		hd = SenVal_Center * 18/10;
+            		pattern = 22;
             	}
-
             	handle(hd);
          		motor( 100 - sp , 100 - sp );
          		break;
 
+         	case 22:  /* 大カーブ */
+            	if( crank && cntGate > 2000){
+            		pattern = 30;
+    //                    break;
+            	}
+            	if( lane_half != -1 ){
+            		pattern = 50;
+            		break;
+            	}
+         	   if(SenVal_Center < 5 && SenVal_Center > -5 && SenVal_Center != 0 ) {
+         	            pattern = 11;
+         	   }
+           		break;
             case 30:
                 led_m_set( CRANK );
                 led_out( 0x1 );
@@ -648,16 +667,18 @@ int main( void )
             case 31:
                 if( crank_turn == 1){
                         LR = 'L';
-                        pattern = 32;
+                        pattern = 33;
                         cnt1 = 0;
                         cnt_dammy = 0;
+                        fall_flag = 1;
                         break;
                }
                if( crank_turn == 2){
                         LR = 'R';
-                        pattern = 32;
+                        pattern = 33;
                         cnt1 = 0;
                         cnt_dammy = 0;
+                        fall_flag = 1;
                         break;
                }
     			handle(SenVal_Center);
@@ -667,6 +688,7 @@ int main( void )
                 if( crank_turn == -1 || cnt_dammy > 2000){
                         pattern = 33;
                         cnt1 = 0;
+                        fall_flag = 1;
                         break;
                }
      			handle(SenVal_Center);
@@ -676,62 +698,24 @@ int main( void )
             case 33:
                 if(LR == 'L'){
                     /* Left crank */
-                    handle( -38 );
-                    motor2( 20,40 );
+                    handle( -40 );
+                    motor2( 0,60 );
+                    if( sensor_inp8(MASK2_0) && cnt1 > 500){
+                    	pattern = 11;
+                    	cnt1 = 0;
+                    }
                 }else{
                     /* Right crank */
-                    handle( 35 );
-                    motor2( 40,20 );
-                }
-                if( sensor_inp8(MASK_2_) && cnt1 > 300){
- //                   pattern = 35;
-                	pattern = 11;
-                	cnt1 = 0;
+                    handle( 40 );
+                    motor2( 60,0 );
+                    if( sensor_inp8(MASK0_2) && cnt1 > 500){
+                    	pattern = 11;
+                    	cnt1 = 0;
+                    	fall_flag = 0;
+                    }
                 }
             break;
-            case 35:
-                if(LR == 'L'){
-                    /* Left crank */
-                    motor2( 20,40);
-//                    if( (sensor_inp()&0x0f) == 0x08 ) {
-                    if( sensor_inp()&0x08 ) {
-                        pattern = 36;
-                        cnt1 = 0;
-                    }
-                }else{
-                    /* Right crank */
-                    motor2( 40,20);
-//                    if( (sensor_inp()&0x0f) == 0x01 ) {
-                    if( sensor_inp()& 0x01 ) {
-                        pattern = 36;
-                        cnt1 = 0;
-                    }
-                }
-                break;
 
-            case 36:
-                /* Right crank clearing processing - check end of turn */
-                motor2( 40,40 );
-                if(LR == 'L'){
-                    if( (sensor_inp()&0x02) == 0x02 ) {
-                        led_out( 0x0 );
-                        led_m_set( RUN );
-                        pattern = 11;
-                        cnt1 = 0;
-                        n_lr++;
-                        if(mem_lr[n_lr] == 'e') n_lr = 0;
-                   }
-                }else{
-                    if( (sensor_inp()&0x04) == 0x04 ) {
-                        led_out( 0x0 );
-                        led_m_set( RUN );
-                        pattern = 11;
-                        cnt1 = 0;
-                        n_lr++;
-                        if(mem_lr[n_lr] == 'e') n_lr = 0;
-                   }
-                }
-                break;
 
  /* Lane change processing at 1st process */
             case 50:
@@ -745,21 +729,27 @@ int main( void )
                         LR = 'R';
                }
                pattern = 51;
+               fall_flag = 1;
             break;
             case 51:
                 led_m_set( LCHANGE );
                 led_out( 0x01 );
                 handle(SenVal_Center);
                 motor(50,50);
-                if( lane_Black){
+            	if( crank ){
+            		pattern = 30;
+            		cnt1 = 0;
+                    break;
+            	}
+            	if( lane_Black ){
 					if(LR == 'L'){
 						/* Right lane change */
-						handle( -15 );
+						handle( -20 );
 					}else{
 						/* Left lane change */
-						handle( 15 );
+						handle( 20 );
 					}
-					 pattern = 52;
+					pattern = 52;
 					cnt1 = 0;
                 }
                 break;
@@ -769,11 +759,11 @@ int main( void )
                 if( cnt1 > 250 ) {
                     if(LR == 'L'){
                         /* Left lane change */
-                        handle( -10 );
+                        handle( -12 );
                         motor2( 30,20 );
                     }else{
                         /* Right lane change */
-                        handle( 10 );
+                        handle( 12 );
                         motor2( 20,30 );
                     }
                     pattern = 53;
@@ -790,39 +780,33 @@ int main( void )
             		n_lr++;
             		if(mem_lr[n_lr] == 'e') n_lr = 0;
             		cnt1 = 0;
+		            fall_flag = 0;
             	}
-
-//                if(LR == 'L'){  /* Left lane change */
-//                    if( sensor_inp8(MASK2_0) ) {
-//                        led_m_set( RUN );
-//                        led_out( 0x0 );
-//                        pattern = 11;
-//                        n_lr++;
-//                        if(mem_lr[n_lr] == 'e') n_lr = 0;
-//                        cnt1 = 0;
-//                    }
-//                }else{          /* Right lane change */
-//                    if( sensor_inp8(MASK0_2) ) {
-//                        led_m_set( RUN );
-//                        led_out( 0x0 );
-//                        pattern = 11;
-//                        n_lr++;
-//                        if(mem_lr[n_lr] == 'e') n_lr = 0;
-//                        cnt1 = 0;
-//                    }
-//                }
 
                 break;
 
             case 54:
-            	handle(SenVal_Center);
+            	handle(SenVal_Center *2);
          		motor( 50 , 50 );
-            	if(cnt1 > 500){
+            	if(cnt1 > 1200){
             		pattern = 11;
             	}
             break;
 
+            case 200:
+            	motor(0,0);
+            	handle( 0 );
+                if( cnt1 < 30 ) {
+                    led_out( 0x1 );
+                } else if( cnt1 < 60 ) {
+                    led_out( 0x2 );
+                } else {
+                    cnt1 = 0;
+                }
+            	break;
+
             case 1000: //ログの出力
+            	fall_flag = 1;
                 led_out( 0x3 );
                 motor(0,0);
                 handle( 0 );
@@ -1182,6 +1166,9 @@ void intTimer( void )
             threshold_buff = Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
 //            threshold_buff = THRESHOLD;
             break;
+        case 14:
+        	if( fall_flag == 0 && wide == 99 && lane_Black == 1) pattern = 200;
+            break;
         default:
             break;
     }
@@ -1403,8 +1390,8 @@ int diff( int pwm )
 //------------------------------------------------------------------//
 unsigned char dipsw_get( void )
 {
-    return( dipsw.read() & 0x0f );
-//    return 8;
+//    return( dipsw.read() & 0x0f );
+    return 7;
 }
 
 //******************************************************************//
@@ -1957,8 +1944,9 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
     //Add display
     pc.printf( "\n\r" );
 //    pc.printf( "sensor_inp = 0x%2x\n\r", sensor_inp8(MASK4_4) );
+      pc.printf( "wide = %3d\n\r", wide );
     pc.printf( "Center = %3d\n\r", SenVal_Center );
-    pc.printf( "LaneChangeHalf %d\n\r",LaneChangeHalf( ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
+//    pc.printf( "LaneChangeHalf %d\n\r",LaneChangeHalf( ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
     pc.printf( "LaneChangeBlack %d\n\r",LaneChangeBlack( ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
 //    pc.printf( "center_inp = 0x%02x\n\r", center_inp() );
 //    pc.printf( "threshold= %d\n\r", Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate)));
