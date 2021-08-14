@@ -3,15 +3,17 @@
  
 
 //Motor PWM cycle
-//Motor PWM cycle
 #define     MOTOR_PWM_CYCLE     33332   /* Motor PWM period         */
 
 //Servo PWM cycle
 #define     SERVO_PWM_CYCLE     33332   /* SERVO PWM period         */
 /* 16ms   P0É”/16 = 0.48us   */
-//#define     SERVO_CENTER        3224    /* 1.5ms / 0.48us - 1 = 3124*/
-#define     SERVO_CENTER        3114    /* 1.5ms / 0.48us - 1 = 3124*/
+#define     SERVO_CENTER        3100    /* 1.5ms / 0.48us - 1 = 3124*/
 #define     HANDLE_STEP         18      /* 1 degree value           */
+
+#define     THRESHOLD           180     /* Binarization function only */
+#define     CLK_SP              25
+
 
 class Drive {
 public:
