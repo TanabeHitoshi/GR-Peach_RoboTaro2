@@ -11,9 +11,6 @@
 #define     SERVO_CENTER        3100    /* 1.5ms / 0.48us - 1 = 3124*/
 #define     HANDLE_STEP         18      /* 1 degree value           */
 
-#define     THRESHOLD           180     /* Binarization function only */
-#define     CLK_SP              25
-
 
 class Drive {
 public:

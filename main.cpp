@@ -29,7 +29,7 @@
 #define     HANDLE_STEP         18      /* 1 degree value           */
 
 #define     THRESHOLD           180     /* Binarization function only */
-#define     CLK_SP              25
+//#define     CLK_SP              25
 
 //LED Color on GR-PEACH
 #define     LED_OFF             0x00
