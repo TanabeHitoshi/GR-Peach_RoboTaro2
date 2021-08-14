@@ -117,7 +117,7 @@ void Drive::init_MTU2_PWM_Servo( void )
 //Arguments: motor:-100 to 100
 //Here, 0 is stop, 100 is forward, -100 is reverse
 //------------------------------------------------------------------//
-void motor( int accele_l, int accele_r )
+void Drive::motor( int accele_l, int accele_r )
 {
     int    sw_data;
 
@@ -153,7 +153,7 @@ void motor( int accele_l, int accele_r )
 //Arguments: motor:-100 to 100
 //Here, 0 is stop, 100 is forward, -100 is reverse
 //------------------------------------------------------------------//
-void motor2( int accele_l, int accele_r )
+void Drive::motor2( int accele_l, int accele_r )
 {
     /* Left Motor Control */
     if( accele_l >= 0 ) {
@@ -176,4 +176,14 @@ void motor2( int accele_l, int accele_r )
         Right_motor_signal = 1;
         MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_r ) / 100;
     }
+}
+
+//------------------------------------------------------------------//
+//handle Function
+//------------------------------------------------------------------//
+void Drive::handle( int angle )
+{
+    handle_buff = angle;
+    /* When the servo move from left to right in reverse, replace "-" with "+" */
+    MTU2TGRD_0 = SERVO_CENTER - angle * HANDLE_STEP;
 }
