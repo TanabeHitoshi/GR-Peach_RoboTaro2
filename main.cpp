@@ -15,6 +15,7 @@
 #include "iodefine.h"
 #include "DisplayBace.h"
 #include "image_process.h"
+#include "Drive.h"
 
 //------------------------------------------------------------------//
 //Define
@@ -101,10 +102,10 @@ DigitalOut  LED_B(P6_15);               /* LED3 on the GR-PEACH board */
 DigitalOut  USER_LED(P6_12);            /* USER_LED on the GR-PEACH board */
 DigitalIn   user_botton(P6_0);          /* SW1 on the GR-PEACH board */
 
-BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
+//BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
 
-DigitalOut  Left_motor_signal(P4_6);    /* Used by motor function   */
-DigitalOut  Right_motor_signal(P4_7);   /* Used by motor function   */
+//DigitalOut  Left_motor_signal(P4_6);    /* Used by motor function   */
+//DigitalOut  Right_motor_signal(P4_7);   /* Used by motor function   */
 DigitalIn   push_sw(P2_13);             /* SW1 on the Motor Drive board */
 DigitalOut  LED_3(P2_14);               /* LED3 on the Motor Drive board */
 DigitalOut  LED_2(P2_15);               /* LED2 on the Motor Drive board */
@@ -1289,72 +1290,6 @@ void led_out(int led)
 unsigned char pushsw_get( void )
 {
     return (~push_sw) & 0x1;            /* Read ports with switches */
-}
-
-//------------------------------------------------------------------//
-//motor speed control(PWM)
-//Arguments: motor:-100 to 100
-//Here, 0 is stop, 100 is forward, -100 is reverse
-//------------------------------------------------------------------//
-void motor( int accele_l, int accele_r )
-{
-    int    sw_data;
-
-    sw_data = dipsw_get() + 5;
-    accele_l = ( accele_l * sw_data ) / 20;
-    accele_r = ( accele_r * sw_data ) / 20;
-
-    /* Left Motor Control */
-    if( accele_l >= 0 ) {
-        /* forward */
-        Left_motor_signal = 0;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_l / 100;
-    } else {
-        /* reverse */
-        Left_motor_signal = 1;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_l ) / 100;
-    }
-
-    /* Right Motor Control */
-    if( accele_r >= 0 ) {
-        /* forward */
-        Right_motor_signal = 0;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_r / 100;
-    } else {
-        /* reverse */
-        Right_motor_signal = 1;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_r ) / 100;
-    }
-}
-
-//------------------------------------------------------------------//
-//motor speed control(PWM)
-//Arguments: motor:-100 to 100
-//Here, 0 is stop, 100 is forward, -100 is reverse
-//------------------------------------------------------------------//
-void motor2( int accele_l, int accele_r )
-{
-    /* Left Motor Control */
-    if( accele_l >= 0 ) {
-        /* forward */
-        Left_motor_signal = 0;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_l / 100;
-    } else {
-        /* reverse */
-        Left_motor_signal = 1;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_l ) / 100;
-    }
-
-    /* Right Motor Control */
-    if( accele_r >= 0 ) {
-        /* forward */
-        Right_motor_signal = 0;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_r / 100;
-    } else {
-        /* reverse */
-        Right_motor_signal = 1;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_r ) / 100;
-    }
 }
 
 //------------------------------------------------------------------//

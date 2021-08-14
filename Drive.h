@@ -21,7 +21,8 @@ public:
 private:
     void init_MTU2_PWM_Motor( void );                   //Initialize MTU2 PWM functions
     void init_MTU2_PWM_Servo( void );                   //Initialize MTU2 PWM functions
-
+    void motor( int accele_l, int accele_r );
+    void motor2( int accele_l, int accele_r );
 };
  
 #endif
