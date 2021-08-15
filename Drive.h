@@ -16,6 +16,7 @@
 class Drive {
 public:
     Drive(void);
+    void run( int accele );
     int diff( int pwm );                                //image_sensorAnalog_get
     void handle( int angle );
     void motor( int accele_l, int accele_r );

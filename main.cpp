@@ -59,23 +59,23 @@
 #define VIDEO_BUFFER_STRIDE    (((PIXEL_HW * DATA_SIZE_PER_PIC) + 31u) & ~31u)
 #define VIDEO_BUFFER_HEIGHT    (PIXEL_VW)
 
-/* 繝槭せ繧ｯ蛟､險ｭ螳� ﾃ暦ｼ壹�槭せ繧ｯ縺ゅｊ(辟｡蜉ｹ)縲�笳具ｼ壹�槭せ繧ｯ辟｡縺�(譛牙柑) */
-#define MASK2_2         0x66            /* ﾃ冷雷笳凝療冷雷笳凝�             */
-#define MASK4_3         0xfe            /* 笳銀雷笳銀雷笳銀雷笳凝�             */
-#define MASK3_4         0x7f            /* ﾃ冷雷笳銀雷笳銀雷笳銀雷             */
-#define MASK1_0         0x80            /* 笳凝療療療療療療�             */
-#define MASK0_1         0x01            /* ﾃ療療療療療療冷雷             */
-#define MASK1_1         0x81            /* 笳凝療療療療療冷雷             */
-#define MASK2_0         0x60            /* ﾃ冷雷笳凝療療療療�             */
-#define MASK0_2         0x06            /* ﾃ療療療療冷雷笳凝�             */
-#define MASK3_3         0xe7            /* 笳銀雷笳凝療冷雷笳銀雷             */
-#define MASK0_3         0x07            /* ﾃ療療療療冷雷笳銀雷             */
-#define MASK3_0         0xe0            /* 笳銀雷笳凝療療療療�             */
-#define MASK4_0         0xf0            /* 笳銀雷笳銀雷ﾃ療療療�             */
-#define MASK0_4         0x0f            /* ﾃ療療療冷雷笳銀雷笳�             */
-#define MASK4_4         0xff            /* 笳銀雷笳銀雷笳銀雷笳銀雷             */
-#define MASK_5_			0x7e			/* ﾃ冷雷笳銀雷笳銀雷笳凝�             */
-#define MASK_2_			0x18			/* ﾃ療療冷雷笳凝療療�             */
+/* Mask set X:Mask on O:Mask off */
+#define MASK2_2         0x66            /* XOOX XOOX */
+#define MASK4_3         0xfe            /* OOOO OOOX */
+#define MASK3_4         0x7f            /* XOOO OOOO */
+#define MASK1_0         0x80            /* OXXX XXXX */
+#define MASK0_1         0x01            /* XXXX XXXO */
+#define MASK1_1         0x81            /* OXXX XXXO */
+#define MASK2_0         0x60            /* XOOX XXXX */
+#define MASK0_2         0x06            /* XXXX XOOX */
+#define MASK3_3         0xe7            /* OOOX XOOO */
+#define MASK0_3         0x07            /* XXXX XOOO */
+#define MASK3_0         0xe0            /* OOOX XXXX */
+#define MASK4_0         0xf0            /* OOOO XXXX */
+#define MASK0_4         0x0f            /* XXXX OOOO */
+#define MASK4_4         0xff            /* OOOO OOOO */
+#define MASK_5_			0x7e			/* XOOO OOOX */
+#define MASK_2_			0x18			/* XXXO OXXX */
 
 //------------------------------------------------------------------//
 //Constructor
@@ -132,10 +132,6 @@ void led_m_process( void );             /* Only function for interrupt */
 //Motor drive board
 void led_out(int led);
 unsigned char pushsw_get( void );
-//void motor( int accele_l, int accele_r );
-//void motor2( int accele_l, int accele_r );
-//void handle( int angle );
-int diff( int pwm );
 
 //Shield board
 unsigned char dipsw_get( void );
@@ -264,11 +260,11 @@ int                     m_number;
 int                     cr = 0;
 int                     bar;
 int                     crank,crank2,crank_turn,lane_half,lane_Black;
-char                    LR;             //繧ｯ繝ｩ繝ｳ繧ｯ縲√Ξ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺後←縺｡繧峨°
-char                    mem_lr[] = {'R','R','R','L','R','e'};     //繧ｯ繝ｩ繝ｳ繧ｯ縲√Ξ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺ｮ險俶�ｶ
-int                     mem_crk[] = {0,300,290,0,260,-1};           //繧ｯ繝ｩ繝ｳ繧ｯ縺ｮ繝悶Ξ繝ｼ繧ｭ蜉�
-int                     n_lr = 0;           //繧ｯ繝ｩ繝ｳ繧ｯ縲√Ξ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺ｮ繝昴ず繧ｷ繝ｧ繝ｳ
-char					fall_flag;			//繧ｳ繝ｼ繧ｹ縺九ｉ閼ｱ霈ｪ繧呈､懃衍縺励↑縺�蝣ｴ蜷医��1縲阪��讀懃衍縺吶ｋ蝣ｴ蜷医��0縲�
+char                    LR;             //CLANK,Lenchang dircection
+char                    mem_lr[] = {'R','R','R','L','R','e'};     //Crank and Lenchange memory
+int                     mem_crk[] = {0,300,290,0,260,-1};           //Crank brake
+int                     n_lr = 0;           //Crank and Lenchange position
+char					fall_flag;			//Detects fall from the course [1]->non [0]->on
 
 //******************************************************************//
 // Main function
@@ -409,7 +405,7 @@ int main( void )
                     cnt1 = 0;
                 }
                 break;
-            case 1:/* 繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｾ縺ｧ陦後￥ */
+            case 1:/* go to start bar */
                 if( bar == 1){
                     cnt1 = 0;
                     pattern = 2;
@@ -489,58 +485,58 @@ int main( void )
             		break;
             	}
             	switch( sensor_inp8(MASK3_3) ) {
-        		/* 竭� */
-            		case 0x00: /*ﾃ療療冷夢  笆ｲﾃ療療� */
+        		/* 1 */
+            		case 0x00: /* xxx_ _xxx */
             			m.handle( 0 );
             			m.motor( 100, 100 );
                     break;
-               /* 竭｡ */
-                   case 0x04: /*ﾃ療療冷夢  笆ｲ笳凝療� */
+               /* 2 */
+                   case 0x04: /* xxx_ _Oxx */
                 	   m.handle( 3 );
                 	   m.motor( 100, m.diff(100) );
                    break;
-                   case 0x20: /*ﾃ療冷雷笆ｲ  笆ｲﾃ療療� */
+                   case 0x20: /* xxO_ _xxx */
                 	   m.handle( -3 );
                 	   m.motor( m.diff(100), 100 );
        				break;
-       			/* 竭｢ */
-                   case 0x06: /*ﾃ療療冷夢  笆ｲ笳銀雷ﾃ� */
+       			/* 3｢ */
+                   case 0x06: /* xxx_ _OOx */
                 	   m.handle( 5 );
                 	   m.motor( 80, m.diff(80) );
          		   break;
-                   case 0x60: /*ﾃ冷雷笳銀夢  笆ｲﾃ療療� */
+                   case 0x60: /* xOO_ _xxx */
                 	   m.handle( -5 );
                 	   m.motor( m.diff(80), 80 );
         		   break;
-        		/* 竭｣ */
-                   case 0x02: /*ﾃ療療冷夢  笆ｲﾃ冷雷ﾃ� */
+        		/* 4｣ */
+                   case 0x02: /* xxx_ _xOx */
                 	   m.handle( 10 );
                 	   m.motor( 60, m.diff(60) );
                    break;
-                   case 0x40: /*ﾃ冷雷ﾃ冷夢  笆ｲﾃ療療� */
+                   case 0x40: /* xOx_ _xxx */
                 	   m.handle( -10 );
                 	   m.motor( m.diff(60), 60 );
                     break;
-               /* 竭､ */
-                   case 0x07: /*ﾃ療療冷夢  笆ｲ笳銀雷笳� */
+               /* 5 */
+                   case 0x07: /* xxx_ _OOO */
                 	   m.handle( 15 );
                 	   m.motor( 60, m.diff(60) );
        				break;
-       			   case 0xe0: /*笳銀雷笳銀夢  笆ｲﾃ療療� */
+       			   case 0xe0: /* OOO_ _xxx */
        				m.handle( -15 );
        				m.motor( m.diff(60), 60 );
-       			break;
-       			/* 竭･ */
-       			 case 0x03: /*ﾃ療療冷夢  笆ｲﾃ冷雷笳� */
-                 case 0x01: /*ﾃ療療冷夢  笆ｲﾃ療冷雷 */
+       				break;
+       			/* 6 */
+       			 case 0x03: /* xxx_ _xOO */
+                 case 0x01: /* xxx_ _xxO */
                 	 m.handle( 20 );
                 	 m.motor( 50, m.diff(50) );
        				 cnt1 = 0;
        				 pattern = 20;
        				 LR = 'R';
        			break;
-                case 0xc0: /*笳銀雷ﾃ冷夢  笆ｲﾃ療療� */
-                case 0x80: /*笳凝療冷夢  笆ｲﾃ療療� */
+                case 0xc0: /* OOx_ _xxx */
+                case 0x80: /* Oxx_ _xxx */
                 	m.handle( -20 );
                 	m.motor( m.diff(50), 50 );
        				cnt1 = 0;
@@ -551,10 +547,9 @@ int main( void )
                 break;
                 }
             break;
-         	case 20:  /* 螟ｧ繧ｫ繝ｼ繝� */
+         	case 20:  /* Big curve */
             	if( crank && cntGate > 2000){
             		pattern = 30;
-    //                    break;
             	}
             	if( lane_half != -1 ){
             		pattern = 50;
@@ -600,14 +595,14 @@ int main( void )
             		hd = SenVal_Center * 18/10;
             		pattern = 22;
             	}
+
             	m.handle(hd);
-            	m.motor( 100 - sp , 100 - sp );
+            	m.run( 100 - sp );
          		break;
 
-         	case 22:  /* 螟ｧ繧ｫ繝ｼ繝� */
+         	case 22:  /* Big curve */
             	if( crank && cntGate > 2000){
             		pattern = 30;
-    //                    break;
             	}
             	if( lane_half != -1 ){
             		pattern = 50;
@@ -769,7 +764,7 @@ int main( void )
                 }
             	break;
 
-            case 1000: //繝ｭ繧ｰ縺ｮ蜃ｺ蜉�
+            case 1000: //Out of log data
             	fall_flag = 1;
                 led_out( 0x3 );
                 m.motor(0,0);
@@ -1358,18 +1353,18 @@ int StartBarCheck(unsigned char *ImageData, int HW, int VW )
         }
     }
     r = -1;
-    //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ讀懷�ｺ
+    //Detect startbar
     for( Yp = 0; Yp < 10; Yp++ ) {
-//        if(w[Yp] > 15){ //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
-        if(width > 12){ //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
+//        if(w[Yp] > 15){ //Startbar length is 10 or more
+        if(width > 12){ //Startbar length is 10 or more
         	r = 1;
         }
     }
-    //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺檎┌縺上↑縺｣縺溘％縺ｨ繧呈､懷�ｺ
+    //Detects that the startbar is gone
     n = 0;
     for( Yp = 0; Yp < 15; Yp++ ) {
-//        if(w[Yp] < 6){ //縺吶せ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
-        if(width < 6){ //縺吶せ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
+//        if(w[Yp] < 6){ //Startbar length is 10 or more
+        if(width < 6){ //Startbar length is 10 or more
 //        	r = 0;
         	n++;
             }
@@ -1422,7 +1417,7 @@ int Crank_Turn_Point(unsigned char *ImageData, int HW, int VW )
     }
     //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
     r = 0;
-    if(w >= 15){ //繧ｯ繝ｭ繧ｹ繝ｩ繧､繝ｳ縺ｮ髟ｷ縺輔′7莉･荳�
+    if(w >= 15){ //Cross line length is 15 or more
         if( Center <= 19) return 1;
         else return 2;
 //        r = 1;

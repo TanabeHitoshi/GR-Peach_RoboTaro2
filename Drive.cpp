@@ -15,6 +15,16 @@ Drive::Drive()
 
 
 }
+
+void Drive::run( int accele )
+{
+    if(handle_buff > 0)
+        motor(accele,diff(accele));
+    else
+        motor(diff(accele),accele);
+
+}
+
 //Deff fanction
 //------------------------------------------------------------------//
 int Drive::diff( int pwm )
