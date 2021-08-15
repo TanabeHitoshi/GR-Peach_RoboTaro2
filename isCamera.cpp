@@ -4,5 +4,7 @@
 #include "image_process.h"
 #include "isCamera.h"
 
-//isCamera::isCamera()
-//{
+isCamera::isCamera()
+{
+
+}

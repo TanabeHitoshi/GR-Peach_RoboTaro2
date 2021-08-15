@@ -3,6 +3,7 @@
 
 class isCamera{
     public:
+		isCamera(void);
 
     private:
 
