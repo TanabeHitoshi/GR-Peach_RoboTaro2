@@ -20,17 +20,7 @@
 //------------------------------------------------------------------//
 //Define
 //------------------------------------------------------------------//
-//Motor PWM cycle
-#define     MOTOR_PWM_CYCLE     33332   /* Motor PWM period         */
-/* 1ms    P0ﾏ�/1  = 0.03us   */
-//Servo PWM cycle
-#define     SERVO_PWM_CYCLE     33332   /* SERVO PWM period         */
-/* 16ms   P0ﾏ�/16 = 0.48us   */
-#define     SERVO_CENTER        3100    /* 1.5ms / 0.48us - 1 = 3124*/
-#define     HANDLE_STEP         18      /* 1 degree value           */
-
 #define     THRESHOLD           180     /* Binarization function only */
-//#define     CLK_SP              25
 
 //LED Color on GR-PEACH
 #define     LED_OFF             0x00
@@ -153,7 +143,7 @@ unsigned char dipsw_get( void );
 //------------------------------------------------------------------//
 //Prototype( Digital sensor process )
 //------------------------------------------------------------------//
-int init_sensor( unsigned char *BuffAddrIn, int HW, int VW, int Cx, int *SENPx, int Y );
+
 unsigned char sensor_process( unsigned char *BuffAddrIn, int HW, int VW, int *SENPx, int Y ); /* Only function for interrupt */
 unsigned char sensor_process8( unsigned char *BuffAddrIn, int HW, int VW, int *SENPx, int Y ); /* Only function for interrupt */
 int sensor_process_Center( unsigned char *ImageData, int HW, int VW, int *SENPx, int Y );
@@ -201,7 +191,6 @@ unsigned char   ImageData_A[ ( ( PIXEL_HW * 2) * PIXEL_VW ) ];
 unsigned char   ImageData_B[ ( PIXEL_HW * PIXEL_VW ) ];
 unsigned char   ImageComp_B[ ( PIXEL_HW * PIXEL_VW ) ];
 unsigned char   ImageBinary[ ( PIXEL_HW * PIXEL_VW ) ];
-//unsigned char   ImageBinary_all[ ( PIXEL_HW * PIXEL_VW ) ];
 
 //double          Rate = 0.125;       /* Reduction ratio              */
 double          Rate = 0.25;       /* Reduction ratio              */
@@ -280,18 +269,6 @@ char                    mem_lr[] = {'R','R','R','L','R','e'};     //繧ｯ繝ｩ
 int                     mem_crk[] = {0,300,290,0,260,-1};           //繧ｯ繝ｩ繝ｳ繧ｯ縺ｮ繝悶Ξ繝ｼ繧ｭ蜉�
 int                     n_lr = 0;           //繧ｯ繝ｩ繝ｳ繧ｯ縲√Ξ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺ｮ繝昴ず繧ｷ繝ｧ繝ｳ
 char					fall_flag;			//繧ｳ繝ｼ繧ｹ縺九ｉ閼ｱ霈ｪ繧呈､懃衍縺励↑縺�蝣ｴ蜷医��1縲阪��讀懃衍縺吶ｋ蝣ｴ蜷医��0縲�
-const int revolution_difference[] = {   /* diff function only       */
-    100, 98, 97, 95, 93,
-    92, 90, 88, 87, 85,
-    84, 82, 81, 79, 78,
-    76, 75, 73, 72, 71,
-    69, 68, 66, 65, 64,
-    62, 61, 59, 58, 57,
-    55, 54, 52, 51, 50,
-    48, 47, 45, 44, 42,
-    41, 39, 38, 36, 35,
-    33
-};
 
 //******************************************************************//
 // Main function
@@ -311,8 +288,7 @@ int main( void )
     wait(0.2);
 
     /* Initialize MCU functions */
-    init_MTU2_PWM_Motor();
-    init_MTU2_PWM_Servo();
+
     interrput.attach(&intTimer, 0.001);
     pc.baud(230400);
 
@@ -327,22 +303,7 @@ int main( void )
 
     wait(0.5);
 
-    /* Initialize Digital sensor */
-//    SenError = init_sensor( ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), (PIXEL_HW * Rate) / 2, Sen1Px, 12 );
-/*
-    if( SenError !=0 ) {
-        led_m_set( ERROR );
-        cnt1 = 0;
-        while( cnt1 < 3000 ) {
-            if( cnt1 % 200 < 100 ) {
-                led_out( 0x3 );
-            } else {
-                led_out( 0x0 );
-            }
-        }
-    }
-*/
-    /* Initialize Pattern Matching */
+     /* Initialize Pattern Matching */
     RightCrank.sdevi = Standard_Deviation( RightCrank.binary, RightCrank.devi, RightCrank.w, RightCrank.h );
     RightLaneChange.sdevi = Standard_Deviation( RightLaneChange.binary, RightLaneChange.devi, RightLaneChange.w, RightLaneChange.h );
 
@@ -848,87 +809,6 @@ int main( void )
     }
 }
 
-//******************************************************************//
-// Initialize functions
-//*******************************************************************/
-//------------------------------------------------------------------//
-//Initialize MTU2 PWM functions
-//------------------------------------------------------------------//
-//MTU2_3, MTU2_4
-//Reset-Synchronized PWM mode
-//TIOC4A(P4_4) :Left-motor
-//TIOC4B(P4_5) :Right-motor
-//------------------------------------------------------------------//
-void init_MTU2_PWM_Motor( void )
-{
-    /* Port setting for S/W I/O Control */
-    /* alternative mode     */
-
-    /* MTU2_4 (P4_4)(P4_5)  */
-    GPIOPBDC4   = 0x0000;               /* Bidirection mode disabled*/
-    GPIOPFCAE4 &= 0xffcf;               /* The alternative function of a pin */
-    GPIOPFCE4  |= 0x0030;               /* The alternative function of a pin */
-    GPIOPFC4   &= 0xffcf;               /* The alternative function of a pin */
-    /* 2nd altemative function/output    */
-    GPIOP4     &= 0xffcf;               /*                          */
-    GPIOPM4    &= 0xffcf;               /* p4_4,P4_5:output         */
-    GPIOPMC4   |= 0x0030;               /* P4_4,P4_5:double         */
-
-    /* Module stop 33(MTU2) canceling */
-    CPGSTBCR3  &= 0xf7;
-
-    /* MTU2_3 and MTU2_4 (Motor PWM) */
-    MTU2TCR_3   = 0x20;                 /* TCNT Clear(TGRA), P0ﾏ�/1  */
-    MTU2TOCR1   = 0x04;                 /*                          */
-    MTU2TOCR2   = 0x40;                 /* N L>H  P H>L             */
-    MTU2TMDR_3  = 0x38;                 /* Buff:ON Reset-Synchronized PWM mode */
-    MTU2TMDR_4  = 0x30;                 /* Buff:ON                  */
-    MTU2TOER    = 0xc6;                 /* TIOC3B,4A,4B enabled output */
-    MTU2TCNT_3  = MTU2TCNT_4 = 0;       /* TCNT3,TCNT4 Set 0        */
-    MTU2TGRA_3  = MTU2TGRC_3 = MOTOR_PWM_CYCLE;
-    /* PWM-Cycle(1ms)           */
-    MTU2TGRA_4  = MTU2TGRC_4 = 0;       /* Left-motor(P4_4)         */
-    MTU2TGRB_4  = MTU2TGRD_4 = 0;       /* Right-motor(P4_5)        */
-    MTU2TSTR   |= 0x40;                 /* TCNT_4 Start             */
-}
-
-//------------------------------------------------------------------//
-//Initialize MTU2 PWM functions
-//------------------------------------------------------------------//
-//MTU2_0
-//PWM mode 1
-//TIOC0A(P4_0) :Servo-motor
-//------------------------------------------------------------------//
-void init_MTU2_PWM_Servo( void )
-{
-    /* Port setting for S/W I/O Control */
-    /* alternative mode     */
-
-    /* MTU2_0 (P4_0)        */
-    GPIOPBDC4   = 0x0000;               /* Bidirection mode disabled*/
-    GPIOPFCAE4 &= 0xfffe;               /* The alternative function of a pin */
-    GPIOPFCE4  &= 0xfffe;               /* The alternative function of a pin */
-    GPIOPFC4   |= 0x0001;               /* The alternative function of a pin */
-    /* 2nd alternative function/output   */
-    GPIOP4     &= 0xfffe;               /*                          */
-    GPIOPM4    &= 0xfffe;               /* p4_0:output              */
-    GPIOPMC4   |= 0x0001;               /* P4_0:double              */
-
-    /* Module stop 33(MTU2) canceling */
-    CPGSTBCR3  &= 0xf7;
-
-    /* MTU2_0 (Motor PWM) */
-    MTU2TCR_0   = 0x22;                 /* TCNT Clear(TGRA), P0ﾏ�/16 */
-    MTU2TIORH_0 = 0x52;                 /* TGRA L>H, TGRB H>L       */
-    MTU2TMDR_0  = 0x32;                 /* TGRC and TGRD = Buff-mode*/
-    /* PWM-mode1                */
-    MTU2TCNT_0  = 0;                    /* TCNT0 Set 0              */
-    MTU2TGRA_0  = MTU2TGRC_0 = SERVO_PWM_CYCLE;
-    /* PWM-Cycle(16ms)          */
-    MTU2TGRB_0  = MTU2TGRD_0 = 0;       /* Servo-motor(P4_0)        */
-    MTU2TSTR   |= 0x01;                 /* TCNT_0 Start             */
-}
-
 //------------------------------------------------------------------//
 //Initialize Camera function
 //------------------------------------------------------------------//
@@ -1294,10 +1174,6 @@ unsigned char pushsw_get( void )
     return (~push_sw) & 0x1;            /* Read ports with switches */
 }
 
-
-
-
-
 //******************************************************************//
 // functions ( on Shield board )
 //*******************************************************************/
@@ -1313,52 +1189,6 @@ unsigned char dipsw_get( void )
 //******************************************************************//
 // digital sensor functions
 //*******************************************************************/
-//------------------------------------------------------------------//
-// init sensor Function
-//------------------------------------------------------------------//
-int init_sensor( unsigned char *BuffAddrIn, int HW, int VW, int Cx, int *SENPx, int Y )
-{
-    int X;
-    int L1x, R1x;
-    int i, error_cnt;
-
-    //Left side
-    for( X = Cx; X > 1; X-- ) {
-        if( BuffAddrIn[ ( Y * HW ) + ( X - 0 ) ] == 0 && BuffAddrIn[ ( Y * HW ) + ( X - 1 ) ] == 0 ) {
-            L1x = X;
-            break;
-        }
-    }
-    //Right side
-    for( X = Cx; X < ( HW - 1 ); X++ ) {
-        if( BuffAddrIn[ ( Y * HW ) + ( X + 0 ) ] == 0 && BuffAddrIn[ ( Y * HW ) + ( X + 1 ) ] == 0 ) {
-            R1x = X;
-            break;
-        }
-    }
-
-    SENPx[ 4 ] = L1x + ( ( R1x - L1x ) / 2 );    // Center
-    SENPx[ 2 ] = L1x;   // L1
-    SENPx[ 1 ] = R1x;   // R1
-    SENPx[ 3 ] = SENPx[ 2 ] - ( SENPx[ 4 ] - SENPx[ 2 ] );  //L2
-    SENPx[ 0 ] = SENPx[ 1 ] + ( SENPx[ 1 ] - SENPx[ 4 ] );  //R2
-
-    /* error check */
-    error_cnt = 0;
-    for( i = 0; i < 4; i++ ) {
-        if( SENPx[4] == SENPx[i] ) error_cnt += 1;
-    }
-
-//#define DEBUG_MODE
-#ifdef DEBUG_MODE
-    pc.printf( "L2=%2d, L1=%2d, Cx=%2d, R1=%2d, R2=%2d\n\r", SENPx[ 3 ], SENPx[ 2 ], SENPx[ 4 ], SENPx[ 1 ], SENPx[ 0 ] );
-    if( error_cnt != 0 ) pc.printf( "init_sensor function Error %1d\n\r", error_cnt );
-    else                 pc.printf( "init_sensor function complete\n\r" );
-    pc.printf( "\n\r" );
-#endif
-
-    return error_cnt;
-}
 
 //------------------------------------------------------------------//
 //sensor_process Function(Interrupt function)
