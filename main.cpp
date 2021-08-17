@@ -22,6 +22,7 @@
 //------------------------------------------------------------------//
 #define     THRESHOLD           180     /* Binarization function only */
 
+
 //LED Color on GR-PEACH
 #define     LED_OFF             0x00
 #define     LED_RED             0x01
@@ -495,7 +496,7 @@ int main( void )
                 	   m.handle( -3 );
                 	   m.motor( m.diff(100), 100 );
        				break;
-       			/* 3�ｽ｢ */
+       			/* 3?ｽ｢ */
                    case 0x06: /* xxx_ _OOx */
                 	   m.handle( 5 );
                 	   m.motor( 80, m.diff(80) );
@@ -504,7 +505,7 @@ int main( void )
                 	   m.handle( -5 );
                 	   m.motor( m.diff(80), 80 );
         		   break;
-        		/* 4�ｽ｣ */
+        		/* 4?ｽ｣ */
                    case 0x02: /* xxx_ _xOx */
                 	   m.handle( 10 );
                 	   m.motor( 60, m.diff(60) );
@@ -1258,25 +1259,25 @@ int sensor_process_Center( unsigned char *ImageData, int HW, int VW, int *SENPx,
 //        pc.printf( "\n\r" );
 //    }
         for( Xp = 0; Xp < HW; Xp++ ) {
-    		if(t==0){	/* �ｿｽ�ｽｼ隨ｬ謔ｽ騾ｶ�ｽｮ邵ｺ�ｽｮ騾具ｽｽ驍ｱ�ｿｽ */
-    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ騾具ｽｽ */
+    		if(t==0){	/* ?ｿｽ?ｽｼ隨ｬ謔ｽ騾ｶ?ｽｮ邵ｺ?ｽｮ騾具ｽｽ驍ｱ?ｿｽ */
+    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ騾具ｽｽ */
     				white++;
     				Lsensor = Xp;
     				t = 1;
     			}
     		}else if(t==1){
-    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ騾具ｽｽ */
+    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ騾具ｽｽ */
     				white++;
     				Lsensor = Xp;
     				t = 2;
     			}
-    		}else if(t==2){	/* �ｿｽ�ｽｼ隨ｬ謔ｽ騾ｶ�ｽｮ邵ｺ�ｽｮ魄溷�､�ｽｷ�ｿｽ */
-    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ魄滂ｿｽ */
+    		}else if(t==2){	/* ?ｿｽ?ｽｼ隨ｬ謔ｽ騾ｶ?ｽｮ邵ｺ?ｽｮ魄溷?､?ｽｷ?ｿｽ */
+    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ魄滂ｿｽ */
     				Rsensor = Xp;
     				t = 3;
     			}
     		}else if(t==3){
-    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ魄滂ｿｽ */
+    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ魄滂ｿｽ */
     				Rsensor = Xp;
     				t = 4;
     		}
@@ -1512,9 +1513,9 @@ int CrankCheck(unsigned char *ImageData, int HW, int VW )
         if(width > 20)break;
     }
 //    r = 0;
-    if(width >= 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ10闔会ｽ･闕ｳ�ｿｽ
- //        if(y > 0 && w[y - 1] < 15){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ陷鷹亂�ｿｽ�ｽｯ邵ｺ�ｽｻ邵ｺ�ｽｨ郢ｧ阮吮�宣ｮ溷�ｵﾂｰ
- //           if(w[y + 3] < 15){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ隹ｺ�ｽ｡邵ｺ�ｽｯ郢晏現ﾎ樒ｹ晢ｽｼ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ
+    if(width >= 20){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ鬮滂ｽｷ邵ｺ霈披?ｲ10闔会ｽ･闕ｳ?ｿｽ
+ //        if(y > 0 && w[y - 1] < 15){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ陷鷹亂?ｿｽ?ｽｯ邵ｺ?ｽｻ邵ｺ?ｽｨ郢ｧ阮吮?宣ｮ溷?ｵﾂｰ
+ //           if(w[y + 3] < 15){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ隹ｺ?ｽ｡邵ｺ?ｽｯ郢晏現ﾎ樒ｹ晢ｽｼ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ
                 r = 1;
  //           }
  //       }
@@ -1549,7 +1550,7 @@ int LeftCrankCheck( int percentage )
 // RightLaneChange Check
 // Return values: 0: no triangle mark, 1: Triangle mark
 //------------------------------------------------------------------//
-//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶�壹♂郢晢ｽｳ郢ｧ�ｽｸ邵ｺ�ｽｮ陷茨ｽｨ邵ｺ�ｽｦ魄溷�ｵ�ｽ帝囎荵昶命邵ｺ莉｣�ｽ�
+//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶?壹♂郢晢ｽｳ郢ｧ?ｽｸ邵ｺ?ｽｮ陷茨ｽｨ邵ｺ?ｽｦ魄溷?ｵ?ｽ帝囎荵昶命邵ｺ莉｣?ｽ?
 int LaneChangeBlack(unsigned char *ImageData, int HW, int VW )
 {
     int     Xp, Yp;
@@ -1566,7 +1567,7 @@ int LaneChangeBlack(unsigned char *ImageData, int HW, int VW )
     else return 0;
 
 }
-//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶�壹♂郢晢ｿｽ郢ｧ�ｽｯ邵ｺ�ｽｮ郢昜ｸ奇ｿｽ�ｽｼ郢晁ｼ釆帷ｹｧ�ｽ､郢晢ｽｳ郢ｧ螳夲ｽｦ荵昶命邵ｺ莉｣�ｽ�
+//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶?壹♂郢晢ｿｽ郢ｧ?ｽｯ邵ｺ?ｽｮ郢昜ｸ奇ｿｽ?ｽｼ郢晁ｼ釆帷ｹｧ?ｽ､郢晢ｽｳ郢ｧ螳夲ｽｦ荵昶命邵ｺ莉｣?ｽ?
 int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
 {
     int     Xp, Yp;
@@ -1595,7 +1596,7 @@ int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
 				}
 			}
 		}
-		if(w < 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ15闔会ｽ･闕ｳ�ｿｽ
+		if(w < 20){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ鬮滂ｽｷ邵ｺ霈披?ｲ15闔会ｽ･闕ｳ?ｿｽ
 		    w = 0;
 		    l_START = 0; l_STOP = 39;
 		    state = 0;
@@ -1608,7 +1609,7 @@ int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
     }
     //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
     r = 0;
-    if(w >= 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ7闔会ｽ･闕ｳ�ｿｽ
+    if(w >= 20){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ鬮滂ｽｷ邵ｺ霈披?ｲ7闔会ｽ･闕ｳ?ｿｽ
         if( Center <= 20) return 1;
         else return 2;
 //        r = 1;
