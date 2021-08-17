@@ -4,6 +4,11 @@
 #include "image_process.h"
 #include "Drive.h"
 
+DigitalOut  Left_motor_signal(P4_6);    /* Used by motor function   */
+DigitalOut  Right_motor_signal(P4_7);   /* Used by motor function   */
+BusIn       dipsw( P7_15, P8_1, P2_9, P5_0 ); /* SW1 on Shield board */
+//BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
+
 Drive::Drive()
 {
     init_MTU2_PWM_Motor();
@@ -11,6 +16,16 @@ Drive::Drive()
 
 
 }
+
+void Drive::run( int accele )
+{
+    if(handle_buff > 0)
+        motor(accele,diff(accele));
+    else
+        motor(diff(accele),accele);
+
+}
+
 //Deff fanction
 //------------------------------------------------------------------//
 int Drive::diff( int pwm )
@@ -104,4 +119,83 @@ void Drive::init_MTU2_PWM_Servo( void )
     /* PWM-Cycle(16ms)          */
     MTU2TGRB_0  = MTU2TGRD_0 = 0;       /* Servo-motor(P4_0)        */
     MTU2TSTR   |= 0x01;                 /* TCNT_0 Start             */
+}
+
+
+
+//------------------------------------------------------------------//
+//motor speed control(PWM)
+//Arguments: motor:-100 to 100
+//Here, 0 is stop, 100 is forward, -100 is reverse
+//------------------------------------------------------------------//
+void Drive::motor( int accele_l, int accele_r )
+{
+
+//    sw_data = dipsw.read() & 0x0f + 5;
+    sw_data = dipsw.read() & 0x0f;
+    sw_data += 5;
+    accele_l = ( accele_l * sw_data ) / 20;
+    accele_r = ( accele_r * sw_data ) / 20;
+
+    /* Left Motor Control */
+    if( accele_l >= 0 ) {
+        /* forward */
+        Left_motor_signal = 0;
+        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_l / 100;
+    } else {
+        /* reverse */
+        Left_motor_signal = 1;
+        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_l ) / 100;
+    }
+
+    /* Right Motor Control */
+    if( accele_r >= 0 ) {
+        /* forward */
+        Right_motor_signal = 0;
+        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_r / 100;
+    } else {
+        /* reverse */
+        Right_motor_signal = 1;
+        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_r ) / 100;
+    }
+}
+
+//------------------------------------------------------------------//
+//motor speed control(PWM)
+//Arguments: motor:-100 to 100
+//Here, 0 is stop, 100 is forward, -100 is reverse
+//------------------------------------------------------------------//
+void Drive::motor2( int accele_l, int accele_r )
+{
+    /* Left Motor Control */
+    if( accele_l >= 0 ) {
+        /* forward */
+        Left_motor_signal = 0;
+        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_l / 100;
+    } else {
+        /* reverse */
+        Left_motor_signal = 1;
+        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_l ) / 100;
+    }
+
+    /* Right Motor Control */
+    if( accele_r >= 0 ) {
+        /* forward */
+        Right_motor_signal = 0;
+        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_r / 100;
+    } else {
+        /* reverse */
+        Right_motor_signal = 1;
+        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_r ) / 100;
+    }
+}
+
+//------------------------------------------------------------------//
+//handle Function
+//------------------------------------------------------------------//
+void Drive::handle( int angle )
+{
+    handle_buff = angle;
+    /* When the servo move from left to right in reverse, replace "-" with "+" */
+    MTU2TGRD_0 = SERVO_CENTER - angle * HANDLE_STEP;
 }

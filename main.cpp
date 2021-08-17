@@ -15,21 +15,12 @@
 #include "iodefine.h"
 #include "DisplayBace.h"
 #include "image_process.h"
-
+#include "Drive.h"
+#include "isCamera.h"
 //------------------------------------------------------------------//
 //Define
 //------------------------------------------------------------------//
-//Motor PWM cycle
-#define     MOTOR_PWM_CYCLE     33332   /* Motor PWM period         */
-/* 1ms    P0ﾏ�/1  = 0.03us   */
-//Servo PWM cycle
-#define     SERVO_PWM_CYCLE     33332   /* SERVO PWM period         */
-/* 16ms   P0ﾏ�/16 = 0.48us   */
-#define     SERVO_CENTER        3100    /* 1.5ms / 0.48us - 1 = 3124*/
-#define     HANDLE_STEP         18      /* 1 degree value           */
-
 #define     THRESHOLD           180     /* Binarization function only */
-#define     CLK_SP              25
 
 //LED Color on GR-PEACH
 #define     LED_OFF             0x00
@@ -68,23 +59,23 @@
 #define VIDEO_BUFFER_STRIDE    (((PIXEL_HW * DATA_SIZE_PER_PIC) + 31u) & ~31u)
 #define VIDEO_BUFFER_HEIGHT    (PIXEL_VW)
 
-/* 繝槭せ繧ｯ蛟､險ｭ螳� ﾃ暦ｼ壹�槭せ繧ｯ縺ゅｊ(辟｡蜉ｹ)縲�笳具ｼ壹�槭せ繧ｯ辟｡縺�(譛牙柑) */
-#define MASK2_2         0x66            /* ﾃ冷雷笳凝療冷雷笳凝�             */
-#define MASK4_3         0xfe            /* 笳銀雷笳銀雷笳銀雷笳凝�             */
-#define MASK3_4         0x7f            /* ﾃ冷雷笳銀雷笳銀雷笳銀雷             */
-#define MASK1_0         0x80            /* 笳凝療療療療療療�             */
-#define MASK0_1         0x01            /* ﾃ療療療療療療冷雷             */
-#define MASK1_1         0x81            /* 笳凝療療療療療冷雷             */
-#define MASK2_0         0x60            /* ﾃ冷雷笳凝療療療療�             */
-#define MASK0_2         0x06            /* ﾃ療療療療冷雷笳凝�             */
-#define MASK3_3         0xe7            /* 笳銀雷笳凝療冷雷笳銀雷             */
-#define MASK0_3         0x07            /* ﾃ療療療療冷雷笳銀雷             */
-#define MASK3_0         0xe0            /* 笳銀雷笳凝療療療療�             */
-#define MASK4_0         0xf0            /* 笳銀雷笳銀雷ﾃ療療療�             */
-#define MASK0_4         0x0f            /* ﾃ療療療冷雷笳銀雷笳�             */
-#define MASK4_4         0xff            /* 笳銀雷笳銀雷笳銀雷笳銀雷             */
-#define MASK_5_			0x7e			/* ﾃ冷雷笳銀雷笳銀雷笳凝�             */
-#define MASK_2_			0x18			/* ﾃ療療冷雷笳凝療療�             */
+/* Mask set X:Mask on O:Mask off */
+#define MASK2_2         0x66            /* XOOX XOOX */
+#define MASK4_3         0xfe            /* OOOO OOOX */
+#define MASK3_4         0x7f            /* XOOO OOOO */
+#define MASK1_0         0x80            /* OXXX XXXX */
+#define MASK0_1         0x01            /* XXXX XXXO */
+#define MASK1_1         0x81            /* OXXX XXXO */
+#define MASK2_0         0x60            /* XOOX XXXX */
+#define MASK0_2         0x06            /* XXXX XOOX */
+#define MASK3_3         0xe7            /* OOOX XOOO */
+#define MASK0_3         0x07            /* XXXX XOOO */
+#define MASK3_0         0xe0            /* OOOX XXXX */
+#define MASK4_0         0xf0            /* OOOO XXXX */
+#define MASK0_4         0x0f            /* XXXX OOOO */
+#define MASK4_4         0xff            /* OOOO OOOO */
+#define MASK_5_			0x7e			/* XOOO OOOX */
+#define MASK_2_			0x18			/* XXXO OXXX */
 
 //------------------------------------------------------------------//
 //Constructor
@@ -101,13 +92,15 @@ DigitalOut  LED_B(P6_15);               /* LED3 on the GR-PEACH board */
 DigitalOut  USER_LED(P6_12);            /* USER_LED on the GR-PEACH board */
 DigitalIn   user_botton(P6_0);          /* SW1 on the GR-PEACH board */
 
-BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
+//BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
 
-DigitalOut  Left_motor_signal(P4_6);    /* Used by motor function   */
-DigitalOut  Right_motor_signal(P4_7);   /* Used by motor function   */
+//DigitalOut  Left_motor_signal(P4_6);    /* Used by motor function   */
+//DigitalOut  Right_motor_signal(P4_7);   /* Used by motor function   */
 DigitalIn   push_sw(P2_13);             /* SW1 on the Motor Drive board */
 DigitalOut  LED_3(P2_14);               /* LED3 on the Motor Drive board */
 DigitalOut  LED_2(P2_15);               /* LED2 on the Motor Drive board */
+
+Drive m;
 
 //------------------------------------------------------------------//
 //Prototype(NTSC-video)
@@ -139,10 +132,6 @@ void led_m_process( void );             /* Only function for interrupt */
 //Motor drive board
 void led_out(int led);
 unsigned char pushsw_get( void );
-void motor( int accele_l, int accele_r );
-void motor2( int accele_l, int accele_r );
-void handle( int angle );
-int diff( int pwm );
 
 //Shield board
 unsigned char dipsw_get( void );
@@ -150,7 +139,7 @@ unsigned char dipsw_get( void );
 //------------------------------------------------------------------//
 //Prototype( Digital sensor process )
 //------------------------------------------------------------------//
-int init_sensor( unsigned char *BuffAddrIn, int HW, int VW, int Cx, int *SENPx, int Y );
+
 unsigned char sensor_process( unsigned char *BuffAddrIn, int HW, int VW, int *SENPx, int Y ); /* Only function for interrupt */
 unsigned char sensor_process8( unsigned char *BuffAddrIn, int HW, int VW, int *SENPx, int Y ); /* Only function for interrupt */
 int sensor_process_Center( unsigned char *ImageData, int HW, int VW, int *SENPx, int Y );
@@ -198,7 +187,6 @@ unsigned char   ImageData_A[ ( ( PIXEL_HW * 2) * PIXEL_VW ) ];
 unsigned char   ImageData_B[ ( PIXEL_HW * PIXEL_VW ) ];
 unsigned char   ImageComp_B[ ( PIXEL_HW * PIXEL_VW ) ];
 unsigned char   ImageBinary[ ( PIXEL_HW * PIXEL_VW ) ];
-//unsigned char   ImageBinary_all[ ( PIXEL_HW * PIXEL_VW ) ];
 
 //double          Rate = 0.125;       /* Reduction ratio              */
 double          Rate = 0.25;       /* Reduction ratio              */
@@ -265,30 +253,18 @@ volatile int            pattern;        /* Pattern numbers          */
 volatile int            led_pattern;    /* led_m_process function only */
 volatile int            initFlag;       /* Initialize flag          */
 volatile int            threshold_buff; /* Binarization function only */
-volatile int            handle_buff;    /* diff function only       */
+//volatile int            handle_buff;    /* diff function only       */
 
 int                     memory[10000][5];
 int                     m_number;
 int                     cr = 0;
 int                     bar;
 int                     crank,crank2,crank_turn,lane_half,lane_Black;
-char                    LR;             //繧ｯ繝ｩ繝ｳ繧ｯ縲√Ξ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺後←縺｡繧峨°
-char                    mem_lr[] = {'R','R','R','L','R','e'};     //繧ｯ繝ｩ繝ｳ繧ｯ縲√Ξ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺ｮ險俶�ｶ
-int                     mem_crk[] = {0,300,290,0,260,-1};           //繧ｯ繝ｩ繝ｳ繧ｯ縺ｮ繝悶Ξ繝ｼ繧ｭ蜉�
-int                     n_lr = 0;           //繧ｯ繝ｩ繝ｳ繧ｯ縲√Ξ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺ｮ繝昴ず繧ｷ繝ｧ繝ｳ
-char					fall_flag;			//繧ｳ繝ｼ繧ｹ縺九ｉ閼ｱ霈ｪ繧呈､懃衍縺励↑縺�蝣ｴ蜷医��1縲阪��讀懃衍縺吶ｋ蝣ｴ蜷医��0縲�
-const int revolution_difference[] = {   /* diff function only       */
-    100, 98, 97, 95, 93,
-    92, 90, 88, 87, 85,
-    84, 82, 81, 79, 78,
-    76, 75, 73, 72, 71,
-    69, 68, 66, 65, 64,
-    62, 61, 59, 58, 57,
-    55, 54, 52, 51, 50,
-    48, 47, 45, 44, 42,
-    41, 39, 38, 36, 35,
-    33
-};
+char                    LR;             //CLANK,Lenchang dircection
+char                    mem_lr[] = {'R','R','R','L','R','e'};     //Crank and Lenchange memory
+int                     mem_crk[] = {0,300,290,0,260,-1};           //Crank brake
+int                     n_lr = 0;           //Crank and Lenchange position
+char					fall_flag;			//Detects fall from the course [1]->non [0]->on
 
 //******************************************************************//
 // Main function
@@ -308,14 +284,13 @@ int main( void )
     wait(0.2);
 
     /* Initialize MCU functions */
-    init_MTU2_PWM_Motor();
-    init_MTU2_PWM_Servo();
+
     interrput.attach(&intTimer, 0.001);
     pc.baud(230400);
 
     /* Initialize Micon Car state */
-    handle( 0 );
-    motor( 0, 0 );
+    m.handle( 0 );
+    m.motor( 0, 0 );
     led_out( 0x0 );
     led_m_set( STOP );
 
@@ -324,22 +299,7 @@ int main( void )
 
     wait(0.5);
 
-    /* Initialize Digital sensor */
-//    SenError = init_sensor( ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), (PIXEL_HW * Rate) / 2, Sen1Px, 12 );
-/*
-    if( SenError !=0 ) {
-        led_m_set( ERROR );
-        cnt1 = 0;
-        while( cnt1 < 3000 ) {
-            if( cnt1 % 200 < 100 ) {
-                led_out( 0x3 );
-            } else {
-                led_out( 0x0 );
-            }
-        }
-    }
-*/
-    /* Initialize Pattern Matching */
+     /* Initialize Pattern Matching */
     RightCrank.sdevi = Standard_Deviation( RightCrank.binary, RightCrank.devi, RightCrank.w, RightCrank.h );
     RightLaneChange.sdevi = Standard_Deviation( RightLaneChange.binary, RightLaneChange.devi, RightLaneChange.w, RightLaneChange.h );
 
@@ -445,36 +405,36 @@ int main( void )
                     cnt1 = 0;
                 }
                 break;
-            case 1:/* 繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｾ縺ｧ陦後￥ */
+            case 1:/* go to start bar */
                 if( bar == 1){
                     cnt1 = 0;
                     pattern = 2;
                 }
-                motor2( 20, 20 );
+                m.motor2( 20, 20 );
                 switch( (sensor_inp()&0x0f) ) {
                     case 0x00:
-                        handle( 0 );
+                    	m.handle( 0 );
                         break;
                     case 0x02:
                     case 0x03:
-                        handle( 3 );
+                    	m.handle( 3 );
                         break;
                     case 0x04:
                     case 0x0c:
-                        handle( -3 );
+                    	m.handle( -3 );
                         break;
                     default:
                         break;
                 }
             break;
             case 2:
-                motor(0,0);
+            	m.motor(0,0);
                 if(cnt1 > 1000){
                     pattern = 3;
                 }
             break;
             case 3:
-                motor(0,0);
+            	m.motor(0,0);
                 if( bar == 0 || pushsw_get()) {
                     led_out( 0x0 );
                     led_m_set( RUN );
@@ -525,60 +485,60 @@ int main( void )
             		break;
             	}
             	switch( sensor_inp8(MASK3_3) ) {
-        		/* 竭� */
-            		case 0x00: /*ﾃ療療冷夢  笆ｲﾃ療療� */
-                      handle( 0 );
-                       motor( 100, 100 );
+        		/* 1 */
+            		case 0x00: /* xxx_ _xxx */
+            			m.handle( 0 );
+            			m.motor( 100, 100 );
                     break;
-               /* 竭｡ */
-                   case 0x04: /*ﾃ療療冷夢  笆ｲ笳凝療� */
-                       handle( 3 );
-                       motor( 100, diff(100) );
+               /* 2 */
+                   case 0x04: /* xxx_ _Oxx */
+                	   m.handle( 3 );
+                	   m.motor( 100, m.diff(100) );
                    break;
-                   case 0x20: /*ﾃ療冷雷笆ｲ  笆ｲﾃ療療� */
-                       handle( -3 );
-                       motor( diff(100), 100 );
+                   case 0x20: /* xxO_ _xxx */
+                	   m.handle( -3 );
+                	   m.motor( m.diff(100), 100 );
        				break;
-       			/* 竭｢ */
-                   case 0x06: /*ﾃ療療冷夢  笆ｲ笳銀雷ﾃ� */
-                       handle( 5 );
-                       motor( 80, diff(80) );
+       			/* 3�ｽ｢ */
+                   case 0x06: /* xxx_ _OOx */
+                	   m.handle( 5 );
+                	   m.motor( 80, m.diff(80) );
          		   break;
-                   case 0x60: /*ﾃ冷雷笳銀夢  笆ｲﾃ療療� */
-                       handle( -5 );
-                       motor( diff(80), 80 );
+                   case 0x60: /* xOO_ _xxx */
+                	   m.handle( -5 );
+                	   m.motor( m.diff(80), 80 );
         		   break;
-        		/* 竭｣ */
-                   case 0x02: /*ﾃ療療冷夢  笆ｲﾃ冷雷ﾃ� */
-                       handle( 10 );
-                       motor( 60, diff(60) );
+        		/* 4�ｽ｣ */
+                   case 0x02: /* xxx_ _xOx */
+                	   m.handle( 10 );
+                	   m.motor( 60, m.diff(60) );
                    break;
-                   case 0x40: /*ﾃ冷雷ﾃ冷夢  笆ｲﾃ療療� */
-                       handle( -10 );
-                       motor( diff(60), 60 );
+                   case 0x40: /* xOx_ _xxx */
+                	   m.handle( -10 );
+                	   m.motor( m.diff(60), 60 );
                     break;
-               /* 竭､ */
-                   case 0x07: /*ﾃ療療冷夢  笆ｲ笳銀雷笳� */
-                       handle( 15 );
-                       motor( 60, diff(60) );
+               /* 5 */
+                   case 0x07: /* xxx_ _OOO */
+                	   m.handle( 15 );
+                	   m.motor( 60, m.diff(60) );
        				break;
-       			   case 0xe0: /*笳銀雷笳銀夢  笆ｲﾃ療療� */
-                      handle( -15 );
-                      motor( diff(60), 60 );
-       			break;
-       			/* 竭･ */
-       			 case 0x03: /*ﾃ療療冷夢  笆ｲﾃ冷雷笳� */
-                 case 0x01: /*ﾃ療療冷夢  笆ｲﾃ療冷雷 */
-                     handle( 20 );
-                     motor( 50, diff(50) );
+       			   case 0xe0: /* OOO_ _xxx */
+       				m.handle( -15 );
+       				m.motor( m.diff(60), 60 );
+       				break;
+       			/* 6 */
+       			 case 0x03: /* xxx_ _xOO */
+                 case 0x01: /* xxx_ _xxO */
+                	 m.handle( 20 );
+                	 m.motor( 50, m.diff(50) );
        				 cnt1 = 0;
        				 pattern = 20;
        				 LR = 'R';
        			break;
-                case 0xc0: /*笳銀雷ﾃ冷夢  笆ｲﾃ療療� */
-                case 0x80: /*笳凝療冷夢  笆ｲﾃ療療� */
-                     handle( -20 );
-                     motor( diff(50), 50 );
+                case 0xc0: /* OOx_ _xxx */
+                case 0x80: /* Oxx_ _xxx */
+                	m.handle( -20 );
+                	m.motor( m.diff(50), 50 );
        				cnt1 = 0;
        				pattern = 20;
        				LR = 'L';
@@ -587,10 +547,9 @@ int main( void )
                 break;
                 }
             break;
-         	case 20:  /* 螟ｧ繧ｫ繝ｼ繝� */
+         	case 20:  /* Big curve */
             	if( crank && cntGate > 2000){
             		pattern = 30;
-    //                    break;
             	}
             	if( lane_half != -1 ){
             		pattern = 50;
@@ -636,14 +595,14 @@ int main( void )
             		hd = SenVal_Center * 18/10;
             		pattern = 22;
             	}
-            	handle(hd);
-         		motor( 100 - sp , 100 - sp );
+
+            	m.handle(hd);
+            	m.run( 100 - sp );
          		break;
 
-         	case 22:  /* 螟ｧ繧ｫ繝ｼ繝� */
+         	case 22:  /* Big curve */
             	if( crank && cntGate > 2000){
             		pattern = 30;
-    //                    break;
             	}
             	if( lane_half != -1 ){
             		pattern = 50;
@@ -656,8 +615,8 @@ int main( void )
             case 30:
                 led_m_set( CRANK );
                 led_out( 0x1 );
-                handle(SenVal_Center);
-                motor(-100,-100);
+                m.handle(SenVal_Center);
+                m.motor(-100,-100);
 //                if( cnt1 > mem_crk[n_lr] ) {
                 if( cnt1 > 150 ) {
                     pattern = 31;
@@ -681,8 +640,8 @@ int main( void )
                         fall_flag = 1;
                         break;
                }
-    			handle(SenVal_Center);
-    			motor2(30,30);
+               m.handle(SenVal_Center);
+               m.motor2(30,30);
             break;
             case 32:
                 if( crank_turn == -1 || cnt_dammy > 2000){
@@ -691,23 +650,23 @@ int main( void )
                         fall_flag = 1;
                         break;
                }
-     			handle(SenVal_Center);
-     			motor2(30,30);
+                m.handle(SenVal_Center);
+                m.motor2(30,30);
             break;
 
             case 33:
                 if(LR == 'L'){
                     /* Left crank */
-                    handle( -40 );
-                    motor2( 0,60 );
+                	m.handle( -40 );
+                	m.motor2( 0,60 );
                     if( sensor_inp8(MASK2_0) && cnt1 > 500){
                     	pattern = 11;
                     	cnt1 = 0;
                     }
                 }else{
                     /* Right crank */
-                    handle( 40 );
-                    motor2( 60,0 );
+                	m.handle( 40 );
+                	m.motor2( 60,0 );
                     if( sensor_inp8(MASK0_2) && cnt1 > 500){
                     	pattern = 11;
                     	cnt1 = 0;
@@ -719,8 +678,8 @@ int main( void )
 
  /* Lane change processing at 1st process */
             case 50:
-                handle( 0 );
-                motor2( 0,0 );
+            	m.handle( 0 );
+            	m.run( 0 );
 //                LR = mem_lr[n_lr];
                 if( lane_half == 1){
                         LR = 'L';
@@ -734,8 +693,9 @@ int main( void )
             case 51:
                 led_m_set( LCHANGE );
                 led_out( 0x01 );
-                handle(SenVal_Center);
-                motor(50,50);
+                if( LR == 'L' ) m.handle(SenVal_Center -8);
+                else            m.handle(SenVal_Center +8);
+                m.run(60);
             	if( crank ){
             		pattern = 30;
             		cnt1 = 0;
@@ -744,10 +704,10 @@ int main( void )
             	if( lane_Black ){
 					if(LR == 'L'){
 						/* Right lane change */
-						handle( -20 );
+						m.handle( -20 );
 					}else{
 						/* Left lane change */
-						handle( 20 );
+						m.handle( 20 );
 					}
 					pattern = 52;
 					cnt1 = 0;
@@ -759,17 +719,39 @@ int main( void )
                 if( cnt1 > 250 ) {
                     if(LR == 'L'){
                         /* Left lane change */
-                        handle( -12 );
-                        motor2( 30,20 );
+                    	m.handle( -12 );
+                    	m.motor2( 30,20 );
                     }else{
                         /* Right lane change */
-                        handle( 12 );
-                        motor2( 20,30 );
+                    	m.handle( 12 );
+                    	m.motor2( 20,30 );
                     }
-                    pattern = 53;
+                    pattern = 525;
                     cnt1 = 0;
                 }
                 break;
+
+            case 525:
+            	if( LR == 'L'){
+            		if(SenVal_Center < -10 && SenVal_Center > -20 && SenVal_Center != 0){
+            			m.handle( 0 );
+            			m.run( 30 );
+            		}
+            		if(SenVal_Center < -5 && SenVal_Center > -10 && SenVal_Center != 0){
+            			pattern = 53;
+            		}
+
+            	}
+            	if( LR == 'R'){
+            		if(SenVal_Center < 20 && SenVal_Center > 10 && SenVal_Center != 0){
+                    	m.handle( 0 );
+                    	m.run( 30 );
+            		}
+               		if(SenVal_Center < 10 && SenVal_Center > 5 && SenVal_Center != 0){
+               			pattern = 53;
+               		}
+            	}
+            break;
 
             case 53:
                 /* lane change end check */
@@ -786,16 +768,16 @@ int main( void )
                 break;
 
             case 54:
-            	handle(SenVal_Center *2);
-         		motor( 50 , 50 );
+            	m.handle(SenVal_Center *2);
+            	m.motor( 50 , 50 );
             	if(cnt1 > 1200){
             		pattern = 11;
             	}
             break;
 
             case 200:
-            	motor(0,0);
-            	handle( 0 );
+            	m.motor(0,0);
+            	m.handle( 0 );
                 if( cnt1 < 30 ) {
                     led_out( 0x1 );
                 } else if( cnt1 < 60 ) {
@@ -805,11 +787,11 @@ int main( void )
                 }
             	break;
 
-            case 1000: //繝ｭ繧ｰ縺ｮ蜃ｺ蜉�
+            case 1000: //Out of log data
             	fall_flag = 1;
                 led_out( 0x3 );
-                motor(0,0);
-                handle( 0 );
+                m.motor(0,0);
+                m.handle( 0 );
                 wait(0.5);
                 led_out( 0x0 );
                 wait(2.0);
@@ -843,87 +825,6 @@ int main( void )
                 break;
         }
     }
-}
-
-//******************************************************************//
-// Initialize functions
-//*******************************************************************/
-//------------------------------------------------------------------//
-//Initialize MTU2 PWM functions
-//------------------------------------------------------------------//
-//MTU2_3, MTU2_4
-//Reset-Synchronized PWM mode
-//TIOC4A(P4_4) :Left-motor
-//TIOC4B(P4_5) :Right-motor
-//------------------------------------------------------------------//
-void init_MTU2_PWM_Motor( void )
-{
-    /* Port setting for S/W I/O Control */
-    /* alternative mode     */
-
-    /* MTU2_4 (P4_4)(P4_5)  */
-    GPIOPBDC4   = 0x0000;               /* Bidirection mode disabled*/
-    GPIOPFCAE4 &= 0xffcf;               /* The alternative function of a pin */
-    GPIOPFCE4  |= 0x0030;               /* The alternative function of a pin */
-    GPIOPFC4   &= 0xffcf;               /* The alternative function of a pin */
-    /* 2nd altemative function/output    */
-    GPIOP4     &= 0xffcf;               /*                          */
-    GPIOPM4    &= 0xffcf;               /* p4_4,P4_5:output         */
-    GPIOPMC4   |= 0x0030;               /* P4_4,P4_5:double         */
-
-    /* Module stop 33(MTU2) canceling */
-    CPGSTBCR3  &= 0xf7;
-
-    /* MTU2_3 and MTU2_4 (Motor PWM) */
-    MTU2TCR_3   = 0x20;                 /* TCNT Clear(TGRA), P0ﾏ�/1  */
-    MTU2TOCR1   = 0x04;                 /*                          */
-    MTU2TOCR2   = 0x40;                 /* N L>H  P H>L             */
-    MTU2TMDR_3  = 0x38;                 /* Buff:ON Reset-Synchronized PWM mode */
-    MTU2TMDR_4  = 0x30;                 /* Buff:ON                  */
-    MTU2TOER    = 0xc6;                 /* TIOC3B,4A,4B enabled output */
-    MTU2TCNT_3  = MTU2TCNT_4 = 0;       /* TCNT3,TCNT4 Set 0        */
-    MTU2TGRA_3  = MTU2TGRC_3 = MOTOR_PWM_CYCLE;
-    /* PWM-Cycle(1ms)           */
-    MTU2TGRA_4  = MTU2TGRC_4 = 0;       /* Left-motor(P4_4)         */
-    MTU2TGRB_4  = MTU2TGRD_4 = 0;       /* Right-motor(P4_5)        */
-    MTU2TSTR   |= 0x40;                 /* TCNT_4 Start             */
-}
-
-//------------------------------------------------------------------//
-//Initialize MTU2 PWM functions
-//------------------------------------------------------------------//
-//MTU2_0
-//PWM mode 1
-//TIOC0A(P4_0) :Servo-motor
-//------------------------------------------------------------------//
-void init_MTU2_PWM_Servo( void )
-{
-    /* Port setting for S/W I/O Control */
-    /* alternative mode     */
-
-    /* MTU2_0 (P4_0)        */
-    GPIOPBDC4   = 0x0000;               /* Bidirection mode disabled*/
-    GPIOPFCAE4 &= 0xfffe;               /* The alternative function of a pin */
-    GPIOPFCE4  &= 0xfffe;               /* The alternative function of a pin */
-    GPIOPFC4   |= 0x0001;               /* The alternative function of a pin */
-    /* 2nd alternative function/output   */
-    GPIOP4     &= 0xfffe;               /*                          */
-    GPIOPM4    &= 0xfffe;               /* p4_0:output              */
-    GPIOPMC4   |= 0x0001;               /* P4_0:double              */
-
-    /* Module stop 33(MTU2) canceling */
-    CPGSTBCR3  &= 0xf7;
-
-    /* MTU2_0 (Motor PWM) */
-    MTU2TCR_0   = 0x22;                 /* TCNT Clear(TGRA), P0ﾏ�/16 */
-    MTU2TIORH_0 = 0x52;                 /* TGRA L>H, TGRB H>L       */
-    MTU2TMDR_0  = 0x32;                 /* TGRC and TGRD = Buff-mode*/
-    /* PWM-mode1                */
-    MTU2TCNT_0  = 0;                    /* TCNT0 Set 0              */
-    MTU2TGRA_0  = MTU2TGRC_0 = SERVO_PWM_CYCLE;
-    /* PWM-Cycle(16ms)          */
-    MTU2TGRB_0  = MTU2TGRD_0 = 0;       /* Servo-motor(P4_0)        */
-    MTU2TSTR   |= 0x01;                 /* TCNT_0 Start             */
 }
 
 //------------------------------------------------------------------//
@@ -1291,97 +1192,6 @@ unsigned char pushsw_get( void )
     return (~push_sw) & 0x1;            /* Read ports with switches */
 }
 
-//------------------------------------------------------------------//
-//motor speed control(PWM)
-//Arguments: motor:-100 to 100
-//Here, 0 is stop, 100 is forward, -100 is reverse
-//------------------------------------------------------------------//
-void motor( int accele_l, int accele_r )
-{
-    int    sw_data;
-
-    sw_data = dipsw_get() + 5;
-    accele_l = ( accele_l * sw_data ) / 20;
-    accele_r = ( accele_r * sw_data ) / 20;
-
-    /* Left Motor Control */
-    if( accele_l >= 0 ) {
-        /* forward */
-        Left_motor_signal = 0;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_l / 100;
-    } else {
-        /* reverse */
-        Left_motor_signal = 1;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_l ) / 100;
-    }
-
-    /* Right Motor Control */
-    if( accele_r >= 0 ) {
-        /* forward */
-        Right_motor_signal = 0;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_r / 100;
-    } else {
-        /* reverse */
-        Right_motor_signal = 1;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_r ) / 100;
-    }
-}
-
-//------------------------------------------------------------------//
-//motor speed control(PWM)
-//Arguments: motor:-100 to 100
-//Here, 0 is stop, 100 is forward, -100 is reverse
-//------------------------------------------------------------------//
-void motor2( int accele_l, int accele_r )
-{
-    /* Left Motor Control */
-    if( accele_l >= 0 ) {
-        /* forward */
-        Left_motor_signal = 0;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_l / 100;
-    } else {
-        /* reverse */
-        Left_motor_signal = 1;
-        MTU2TGRC_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_l ) / 100;
-    }
-
-    /* Right Motor Control */
-    if( accele_r >= 0 ) {
-        /* forward */
-        Right_motor_signal = 0;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * accele_r / 100;
-    } else {
-        /* reverse */
-        Right_motor_signal = 1;
-        MTU2TGRD_4 = (long)( MOTOR_PWM_CYCLE - 1 ) * ( -accele_r ) / 100;
-    }
-}
-
-//------------------------------------------------------------------//
-//handle Function
-//------------------------------------------------------------------//
-void handle( int angle )
-{
-    handle_buff = angle;
-    /* When the servo move from left to right in reverse, replace "-" with "+" */
-    MTU2TGRD_0 = SERVO_CENTER - angle * HANDLE_STEP;
-}
-
-//------------------------------------------------------------------//
-//diff Function
-//------------------------------------------------------------------//
-int diff( int pwm )
-{
-    int i, ret;
-
-    i  = handle_buff;
-    if( i <  0 ) i = -i;
-    if( i > 45 ) i = 45;
-    ret = revolution_difference[i] * pwm / 100;
-
-    return ret;
-}
-
 //******************************************************************//
 // functions ( on Shield board )
 //*******************************************************************/
@@ -1397,52 +1207,6 @@ unsigned char dipsw_get( void )
 //******************************************************************//
 // digital sensor functions
 //*******************************************************************/
-//------------------------------------------------------------------//
-// init sensor Function
-//------------------------------------------------------------------//
-int init_sensor( unsigned char *BuffAddrIn, int HW, int VW, int Cx, int *SENPx, int Y )
-{
-    int X;
-    int L1x, R1x;
-    int i, error_cnt;
-
-    //Left side
-    for( X = Cx; X > 1; X-- ) {
-        if( BuffAddrIn[ ( Y * HW ) + ( X - 0 ) ] == 0 && BuffAddrIn[ ( Y * HW ) + ( X - 1 ) ] == 0 ) {
-            L1x = X;
-            break;
-        }
-    }
-    //Right side
-    for( X = Cx; X < ( HW - 1 ); X++ ) {
-        if( BuffAddrIn[ ( Y * HW ) + ( X + 0 ) ] == 0 && BuffAddrIn[ ( Y * HW ) + ( X + 1 ) ] == 0 ) {
-            R1x = X;
-            break;
-        }
-    }
-
-    SENPx[ 4 ] = L1x + ( ( R1x - L1x ) / 2 );    // Center
-    SENPx[ 2 ] = L1x;   // L1
-    SENPx[ 1 ] = R1x;   // R1
-    SENPx[ 3 ] = SENPx[ 2 ] - ( SENPx[ 4 ] - SENPx[ 2 ] );  //L2
-    SENPx[ 0 ] = SENPx[ 1 ] + ( SENPx[ 1 ] - SENPx[ 4 ] );  //R2
-
-    /* error check */
-    error_cnt = 0;
-    for( i = 0; i < 4; i++ ) {
-        if( SENPx[4] == SENPx[i] ) error_cnt += 1;
-    }
-
-//#define DEBUG_MODE
-#ifdef DEBUG_MODE
-    pc.printf( "L2=%2d, L1=%2d, Cx=%2d, R1=%2d, R2=%2d\n\r", SENPx[ 3 ], SENPx[ 2 ], SENPx[ 4 ], SENPx[ 1 ], SENPx[ 0 ] );
-    if( error_cnt != 0 ) pc.printf( "init_sensor function Error %1d\n\r", error_cnt );
-    else                 pc.printf( "init_sensor function complete\n\r" );
-    pc.printf( "\n\r" );
-#endif
-
-    return error_cnt;
-}
 
 //------------------------------------------------------------------//
 //sensor_process Function(Interrupt function)
@@ -1515,25 +1279,25 @@ int sensor_process_Center( unsigned char *ImageData, int HW, int VW, int *SENPx,
 //        pc.printf( "\n\r" );
 //    }
         for( Xp = 0; Xp < HW; Xp++ ) {
-    		if(t==0){	/* �ｼ第悽逶ｮ縺ｮ逋ｽ邱� */
-    			if( ImageData[Xp + (Y * HW)] ){		/* 蟾ｦ縺九ｉ譛�蛻昴�ｮ逋ｽ */
+    		if(t==0){	/* �ｿｽ�ｽｼ隨ｬ謔ｽ騾ｶ�ｽｮ邵ｺ�ｽｮ騾具ｽｽ驍ｱ�ｿｽ */
+    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ騾具ｽｽ */
     				white++;
     				Lsensor = Xp;
     				t = 1;
     			}
     		}else if(t==1){
-    			if( ImageData[Xp + (Y * HW)] ){		/* 蟾ｦ縺九ｉ譛�蛻昴�ｮ逋ｽ */
+    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ騾具ｽｽ */
     				white++;
     				Lsensor = Xp;
     				t = 2;
     			}
-    		}else if(t==2){	/* �ｼ第悽逶ｮ縺ｮ鮟堤ｷ� */
-    			if( !ImageData[Xp + (Y * HW)] ){		/* 蟾ｦ縺九ｉ譛�蛻昴�ｮ鮟� */
+    		}else if(t==2){	/* �ｿｽ�ｽｼ隨ｬ謔ｽ騾ｶ�ｽｮ邵ｺ�ｽｮ魄溷�､�ｽｷ�ｿｽ */
+    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ魄滂ｿｽ */
     				Rsensor = Xp;
     				t = 3;
     			}
     		}else if(t==3){
-    			if( !ImageData[Xp + (Y * HW)] ){		/* 蟾ｦ縺九ｉ譛�蛻昴�ｮ鮟� */
+    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ魄滂ｿｽ */
     				Rsensor = Xp;
     				t = 4;
     		}
@@ -1612,18 +1376,18 @@ int StartBarCheck(unsigned char *ImageData, int HW, int VW )
         }
     }
     r = -1;
-    //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ讀懷�ｺ
+    //Detect startbar
     for( Yp = 0; Yp < 10; Yp++ ) {
-//        if(w[Yp] > 15){ //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
-        if(width > 12){ //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
+//        if(w[Yp] > 15){ //Startbar length is 10 or more
+        if(width > 12){ //Startbar length is 10 or more
         	r = 1;
         }
     }
-    //繧ｹ繧ｿ繝ｼ繝医ヰ繝ｼ縺檎┌縺上↑縺｣縺溘％縺ｨ繧呈､懷�ｺ
+    //Detects that the startbar is gone
     n = 0;
     for( Yp = 0; Yp < 15; Yp++ ) {
-//        if(w[Yp] < 6){ //縺吶せ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
-        if(width < 6){ //縺吶せ繧ｿ繝ｼ繝医ヰ繝ｼ縺ｮ髟ｷ縺輔′10莉･荳�
+//        if(w[Yp] < 6){ //Startbar length is 10 or more
+        if(width < 6){ //Startbar length is 10 or more
 //        	r = 0;
         	n++;
             }
@@ -1676,7 +1440,7 @@ int Crank_Turn_Point(unsigned char *ImageData, int HW, int VW )
     }
     //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
     r = 0;
-    if(w >= 15){ //繧ｯ繝ｭ繧ｹ繝ｩ繧､繝ｳ縺ｮ髟ｷ縺輔′7莉･荳�
+    if(w >= 15){ //Cross line length is 15 or more
         if( Center <= 19) return 1;
         else return 2;
 //        r = 1;
@@ -1769,9 +1533,9 @@ int CrankCheck(unsigned char *ImageData, int HW, int VW )
         if(width > 20)break;
     }
 //    r = 0;
-    if(width >= 20){ //繧ｯ繝ｭ繧ｹ繝ｩ繧､繝ｳ縺ｮ髟ｷ縺輔′10莉･荳�
- //        if(y > 0 && w[y - 1] < 15){ //繧ｯ繝ｭ繧ｹ繝ｩ繧､繝ｳ縺ｮ蜑阪�ｯ縺ｻ縺ｨ繧薙←鮟偵°
- //           if(w[y + 3] < 15){ //繧ｯ繝ｭ繧ｹ繝ｩ繧､繝ｳ縺ｮ谺｡縺ｯ繝医Ξ繝ｼ繧ｹ繝ｩ繧､繝ｳ
+    if(width >= 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ10闔会ｽ･闕ｳ�ｿｽ
+ //        if(y > 0 && w[y - 1] < 15){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ陷鷹亂�ｿｽ�ｽｯ邵ｺ�ｽｻ邵ｺ�ｽｨ郢ｧ阮吮�宣ｮ溷�ｵﾂｰ
+ //           if(w[y + 3] < 15){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ隹ｺ�ｽ｡邵ｺ�ｽｯ郢晏現ﾎ樒ｹ晢ｽｼ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ
                 r = 1;
  //           }
  //       }
@@ -1806,7 +1570,7 @@ int LeftCrankCheck( int percentage )
 // RightLaneChange Check
 // Return values: 0: no triangle mark, 1: Triangle mark
 //------------------------------------------------------------------//
-//繝ｬ繝ｼ繝ｳ繝√ぉ繝ｳ繧ｸ縺ｮ蜈ｨ縺ｦ鮟偵ｒ隕九▽縺代ｋ
+//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶�壹♂郢晢ｽｳ郢ｧ�ｽｸ邵ｺ�ｽｮ陷茨ｽｨ邵ｺ�ｽｦ魄溷�ｵ�ｽ帝囎荵昶命邵ｺ莉｣�ｽ�
 int LaneChangeBlack(unsigned char *ImageData, int HW, int VW )
 {
     int     Xp, Yp;
@@ -1823,7 +1587,7 @@ int LaneChangeBlack(unsigned char *ImageData, int HW, int VW )
     else return 0;
 
 }
-//繝ｬ繝ｼ繝ｳ繝√ぉ繝�繧ｯ縺ｮ繝上�ｼ繝輔Λ繧､繝ｳ繧定ｦ九▽縺代ｋ
+//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶�壹♂郢晢ｿｽ郢ｧ�ｽｯ邵ｺ�ｽｮ郢昜ｸ奇ｿｽ�ｽｼ郢晁ｼ釆帷ｹｧ�ｽ､郢晢ｽｳ郢ｧ螳夲ｽｦ荵昶命邵ｺ莉｣�ｽ�
 int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
 {
     int     Xp, Yp;
@@ -1852,7 +1616,7 @@ int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
 				}
 			}
 		}
-		if(w < 20){ //繧ｯ繝ｭ繧ｹ繝ｩ繧､繝ｳ縺ｮ髟ｷ縺輔′15莉･荳�
+		if(w < 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ15闔会ｽ･闕ｳ�ｿｽ
 		    w = 0;
 		    l_START = 0; l_STOP = 39;
 		    state = 0;
@@ -1865,7 +1629,7 @@ int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
     }
     //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
     r = 0;
-    if(w >= 20){ //繧ｯ繝ｭ繧ｹ繝ｩ繧､繝ｳ縺ｮ髟ｷ縺輔′7莉･荳�
+    if(w >= 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ7闔会ｽ･闕ｳ�ｿｽ
         if( Center <= 20) return 1;
         else return 2;
 //        r = 1;
@@ -1936,7 +1700,8 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
     //Add display
     pc.printf( "\n\r" );
 //    pc.printf( "sensor_inp = 0x%2x\n\r", sensor_inp8(MASK4_4) );
-      pc.printf( "wide = %3d\n\r", wide );
+//      pc.printf( "wide = %3d\n\r", wide );
+      pc.printf( "dipsw = %3d\n\r", m.sw_data );
     pc.printf( "Center = %3d\n\r", SenVal_Center );
 //    pc.printf( "LaneChangeHalf %d\n\r",LaneChangeHalf( ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
     pc.printf( "LaneChangeBlack %d\n\r",LaneChangeBlack( ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
