@@ -6,7 +6,8 @@
 
 DigitalOut  Left_motor_signal(P4_6);    /* Used by motor function   */
 DigitalOut  Right_motor_signal(P4_7);   /* Used by motor function   */
-BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
+BusIn       dipsw( P7_15, P8_1, P2_9, P5_0 ); /* SW1 on Shield board */
+//BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
 
 Drive::Drive()
 {
@@ -129,9 +130,10 @@ void Drive::init_MTU2_PWM_Servo( void )
 //------------------------------------------------------------------//
 void Drive::motor( int accele_l, int accele_r )
 {
-    int    sw_data;
 
-    sw_data = dipsw.read() & 0x0f + 5;
+//    sw_data = dipsw.read() & 0x0f + 5;
+    sw_data = dipsw.read() & 0x0f;
+    sw_data += 5;
     accele_l = ( accele_l * sw_data ) / 20;
     accele_r = ( accele_r * sw_data ) / 20;
 

@@ -23,6 +23,8 @@ public:
     void motor2( int accele_l, int accele_r );
 
     volatile int            handle_buff;
+    int    sw_data;
+
 
 private:
     void init_MTU2_PWM_Motor( void );                   //Initialize MTU2 PWM functions
