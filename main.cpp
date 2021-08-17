@@ -22,7 +22,6 @@
 //------------------------------------------------------------------//
 #define     THRESHOLD           180     /* Binarization function only */
 
-
 //LED Color on GR-PEACH
 #define     LED_OFF             0x00
 #define     LED_RED             0x01
