@@ -146,10 +146,8 @@ unsigned char center_inp( void );
 //Prototype( Mark detect functions )
 //------------------------------------------------------------------//
 int StartBarCheck(unsigned char *ImageData, int HW, int VW);
-int Crank_Turn_Point(unsigned char *ImageData, int HW, int VW );
-int Crank_Mark_Check( unsigned char *ImageData, int HW, int VW);
-int CrankCheck(unsigned char *ImageData, int HW, int VW );
-int LaneChangeBlack(unsigned char *ImageData, int HW, int VW);
+
+//int CrankCheck(unsigned char *ImageData, int HW, int VW );
 int RightCrankCheck( int percentage );
 int RightLaneChangeCheck( int percentage );
 int LeftCrankCheck( int percentage );
@@ -1007,9 +1005,9 @@ void intTimer( void )
         case 6:
             Binarization( ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate), c.ImageBinary, threshold_buff );
 //            if( !initFlag ) SenVal1 = sensor_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 12 );
-            crank_turn = Crank_Turn_Point( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+            crank_turn = c.Crank_Turn_Point();
 //            crank2 = CrankCheck( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
-            crank = Crank_Mark_Check( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+            crank = c.Crank_Mark_Check();
 //            lane = LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
             bar = StartBarCheck( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
             break;
@@ -1021,7 +1019,7 @@ void intTimer( void )
         case 8:
             if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightCrank, 2, 10, 2, 8 );
             lane_half = c.LaneChangeHalf();
-            lane_Black = LaneChangeBlack( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+            lane_Black = c.LaneChangeBlack();
              break;
         case 9:
             if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightLaneChange, 0, 2, 1, 3 );
@@ -1264,145 +1262,12 @@ int StartBarCheck(unsigned char *ImageData, int HW, int VW )
     */
     return r;
 }
-//------------------------------------------------------------------//
-// Crank Check
-// Return values: 0: no crank 1: Left crank 2: Right crank
-//------------------------------------------------------------------//
-int Crank_Turn_Point(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     r;
-    int     l_START,l_STOP;
-    int     w;
-    int     Center;
-    int     state;
-
-    w = 0;
-    l_START = 0; l_STOP = 19;
-    state = 0;
-
-    Yp = 20;
-    for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-        if( ImageData[Xp + (Yp * HW)] == 1){
-            if(state == 0) l_START = Xp;
-            w++;
-            state = 1;
-        }else{
-            if( state == 1){
-                l_STOP = Xp;
-                state = 2;
-            }
-        }
-    }
-    if(!(l_START == 0 && l_STOP == 39)){
-        Center = (l_START + l_STOP ) /2;
-    }
-    //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
-    r = 0;
-    if(w >= 15){ //Cross line length is 15 or more
-        if( Center <= 19) return 1;
-        else return 2;
-//        r = 1;
-    }
-    if(w == 0){
-        r = -1;
-    }
-    return r;
-}
-//------------------------------------------------------------------//
-// Crank Check
-// Return values: 0: no Start Bar, 1: Start Bar
-//------------------------------------------------------------------//
-int Crank_Mark_Check(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     s,r;
-    int width;
-    int w[VW];
-//    int n;
-
-    s = 0;
-     width = 0;
-
-    for( Yp = 15; Yp < 30; Yp++ ) {
-        w[Yp] = 0;
-        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-            if( ImageData[Xp + (Yp * HW)] == 1){
-                s++;
-                w[Yp]++;
-            }
-            if( ImageData[Xp + (Yp * HW)] == 0){
-                if(s > width) {
-                    width = s;
-                }
-                s = 0;
-            }
-        }
-    }
-    r = 0;
-    for( Yp = 15; Yp < 30; Yp++ ) {
-        if(w[Yp] > 30){
-            r = 1;
-        }
-    }
-     /*
-    n = 0;
-    for( Yp = 0; Yp < 15; Yp++ ) {
-        if(w[Yp] < 6){
-            n++;
-        }
-    }
-    if(n == 15)r = -1;
-    */
-    return r;
-}
 
 //------------------------------------------------------------------//
 // RightCrank Check
 // Return values: 0: no triangle mark, 1: Triangle mark
 //------------------------------------------------------------------//
-int CrankCheck(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     s,r;
-    int width;
-    int w[VW];
-    int y;
 
-    s = 0;
-     width = 0;
-
-    for( Yp = 14; Yp < 29; Yp++ ) {
-        w[Yp] = 0;
-        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-            if( ImageData[Xp + (Yp * HW)] == 1){
-                s++;
-                w[Yp]++;
-            }
-            if( ImageData[Xp + (Yp * HW)] == 0){
-                if(s > width) {
-                    width = s;
-                    y = Yp;
-                }
-                s = 0;
-            }
-        }
-        if(width > 20)break;
-    }
-//    r = 0;
-    if(width >= 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ10闔会ｽ･闕ｳ�ｿｽ
- //        if(y > 0 && w[y - 1] < 15){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ陷鷹亂�ｿｽ�ｽｯ邵ｺ�ｽｻ邵ｺ�ｽｨ郢ｧ阮吮�宣ｮ溷�ｵﾂｰ
- //           if(w[y + 3] < 15){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ隹ｺ�ｽ｡邵ｺ�ｽｯ郢晏現ﾎ樒ｹ晢ｽｼ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ
-                r = 1;
- //           }
- //       }
-    }
- //   return r;
-    return width;
-}
 int RightCrankCheck( int percentage )
 {
     int ret;
@@ -1430,24 +1295,7 @@ int LeftCrankCheck( int percentage )
 // RightLaneChange Check
 // Return values: 0: no triangle mark, 1: Triangle mark
 //------------------------------------------------------------------//
-//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶�壹♂郢晢ｽｳ郢ｧ�ｽｸ邵ｺ�ｽｮ陷茨ｽｨ邵ｺ�ｽｦ魄溷�ｵ�ｽ帝囎荵昶命邵ｺ莉｣�ｽ�
-int LaneChangeBlack(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     s = 0;
 
-    for( Yp = 15; Yp < 30; Yp++ ) {
-        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-            if( ImageData[Xp + (Yp * HW)] == 1) s++;
-        }
-//        pc.printf( "\n\r" );
-    }
-    if(s == 0) return 1;
-    else return 0;
-
-}
-//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶�壹♂郢晢ｿｽ郢ｧ�ｽｯ邵ｺ�ｽｮ郢昜ｸ奇ｿｽ�ｽｼ郢晁ｼ釆帷ｹｧ�ｽ､郢晢ｽｳ郢ｧ螳夲ｽｦ荵昶命邵ｺ莉｣�ｽ�
 
 int RightLaneChangeCheck( int percentage )
 {
@@ -1512,8 +1360,8 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
 //      pc.printf( "wide = %3d\n\r", wide );
 //      pc.printf( "dipsw = %3d\n\r", m.sw_data );
     pc.printf( "Center = %3d\n\r", SenVal_Center );
-//    pc.printf( "LaneChangeHalf %d\n\r",LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
-    pc.printf( "LaneChangeBlack %d\n\r",LaneChangeBlack( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
+//    pc.printf( "LaneChangeHalf %d\n\r",c.LaneChangeHalf());
+    pc.printf( "LaneChangeBlack %d\n\r",c.LaneChangeBlack());
 //    pc.printf( "center_inp = 0x%02x\n\r", center_inp() );
 //    pc.printf( "threshold= %d\n\r", Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate)));
 //      pc.printf( "RightCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightCrankCheck(80), RightCrank.p, RightCrank.x, RightCrank.y );
@@ -1523,8 +1371,8 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
 //    pc.printf( "RightLaneChange = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightLaneChangeCheck(80), RightLaneChange.p, RightLaneChange.x, RightLaneChange.y );
 //    pc.printf( "LeftCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", LeftCrankCheck(80), LeftCrank.p, LeftCrank.x, LeftCrank.y );
 //    pc.printf( "LeftLaneChange = %01d, = %3d%%, X = %2d, Y = %2d\n\r", LeftLaneChangeCheck(80), LeftLaneChange.p, LeftLaneChange.x, LeftLaneChange.y );
-    pc.printf( "Crank_Mark_Check %d\n\r",Crank_Mark_Check( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
-        pc.printf( "CrankturnPoint %d\n\r",Crank_Turn_Point( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
+    pc.printf( "Crank_Mark_Check %d\n\r",c.Crank_Mark_Check());
+        pc.printf( "CrankturnPoint %d\n\r",c.Crank_Turn_Point());
     pc.printf( "\n\r" );
     VW += 6;
 
