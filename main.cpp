@@ -150,7 +150,6 @@ int Crank_Turn_Point(unsigned char *ImageData, int HW, int VW );
 int Crank_Mark_Check( unsigned char *ImageData, int HW, int VW);
 int CrankCheck(unsigned char *ImageData, int HW, int VW );
 int LaneChangeBlack(unsigned char *ImageData, int HW, int VW);
-int LaneChangeHalf(unsigned char *ImageData, int HW, int VW);
 int RightCrankCheck( int percentage );
 int RightLaneChangeCheck( int percentage );
 int LeftCrankCheck( int percentage );
@@ -1021,7 +1020,7 @@ void intTimer( void )
           break;
         case 8:
             if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightCrank, 2, 10, 2, 8 );
-            lane_half = LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+            lane_half = c.LaneChangeHalf();
             lane_Black = LaneChangeBlack( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
              break;
         case 9:
@@ -1449,57 +1448,6 @@ int LaneChangeBlack(unsigned char *ImageData, int HW, int VW )
 
 }
 //郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶�壹♂郢晢ｿｽ郢ｧ�ｽｯ邵ｺ�ｽｮ郢昜ｸ奇ｿｽ�ｽｼ郢晁ｼ釆帷ｹｧ�ｽ､郢晢ｽｳ郢ｧ螳夲ｽｦ荵昶命邵ｺ莉｣�ｽ�
-int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     r;
-    int     l_START,l_STOP;
-    int     w;
-    int     Center;
-    int     state;
-
-    w = 0;
-    l_START = 0; l_STOP = 19;
-    state = 0;
-
-//    Yp = 7;
-    for( Yp = 15; Yp < 30; Yp++){
-		for( Xp = 0; Xp < HW; Xp++ ) {
-	//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-			if( ImageData[Xp + (Yp * HW)] == 1){
-				if(state == 0) l_START = Xp;
-				w++;
-				state = 1;
-			}else{
-				if( state == 1){
-					l_STOP = Xp;
-					state = 2;
-				}
-			}
-		}
-		if(w < 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ15闔会ｽ･闕ｳ�ｿｽ
-		    w = 0;
-		    l_START = 0; l_STOP = 39;
-		    state = 0;
-		}else{
-			break;
-		}
-    }
-    if(!(l_START == 0 && l_STOP == 39)){
-        Center = (l_START + l_STOP ) /2;
-    }
-    //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
-    r = 0;
-    if(w >= 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ7闔会ｽ･闕ｳ�ｿｽ
-        if( Center <= 20) return 1;
-        else return 2;
-//        r = 1;
-    }
-    if(w == 0){
-        r = -1;
-    }
-    return r;
-}
 
 int RightLaneChangeCheck( int percentage )
 {
