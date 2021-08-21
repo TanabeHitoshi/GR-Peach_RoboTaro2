@@ -54,8 +54,6 @@
 
 /*! Frame buffer stride: Frame buffer stride should be set to a multiple of 32 or 128
     in accordance with the frame buffer burst transfer mode. */
-//#define PIXEL_HW               (160u)  /* QVGA */
-//#define PIXEL_VW               (120u)  /* QVGA */
 #define VIDEO_BUFFER_STRIDE    (((PIXEL_HW * DATA_SIZE_PER_PIC) + 31u) & ~31u)
 #define VIDEO_BUFFER_HEIGHT    (PIXEL_VW)
 
@@ -163,7 +161,6 @@ int             Sen1Px[5];
 volatile unsigned long  cnt0;           /* Used by timer function   */
 volatile unsigned long  cnt1;           /* Used within main         */
 volatile unsigned long  cntGate;           /* Used within main         */
-volatile long  cnt_curve;           /* Used within main         */
 volatile long  cnt_dammy;           /* Used within main         */
 volatile int            pattern;        /* Pattern numbers          */
 
@@ -900,7 +897,6 @@ void intTimer( void )
     cnt0++;
     cnt1++;
     cntGate++;
-    cnt_curve+=3;
     cnt_dammy++;
 
     /* field check */
