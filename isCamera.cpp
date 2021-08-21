@@ -348,7 +348,7 @@ int isCamera::StartBarCheck(void)
     //Detect startbar
     for( Yp = 0; Yp < 10; Yp++ ) {
 //        if(w[Yp] > 15){ //Startbar length is 10 or more
-        if(width > 12){ //Startbar length is 10 or more
+        if(width > 35){ //Startbar length is 10 or more
         	r = 1;
         }
     }
