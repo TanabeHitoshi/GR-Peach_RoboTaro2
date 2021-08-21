@@ -115,7 +115,6 @@ unsigned char dipsw_get( void );
 //------------------------------------------------------------------//
 //Prototype( Mark detect functions )
 //------------------------------------------------------------------//
-int StartBarCheck(unsigned char *ImageData, int HW, int VW);
 
 //------------------------------------------------------------------//
 //Prototype( Debug functions )
@@ -927,7 +926,7 @@ void intTimer( void )
             break;
         case 6:
             Binarization( ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate), c.ImageBinary, threshold_buff );
-            bar = StartBarCheck( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+            bar = c.StartBarCheck();
             break;
         case 7:
             if( !initFlag ) c.SenVal8	= c.sensor_process8();
@@ -1099,66 +1098,7 @@ unsigned char dipsw_get( void )
 
 
 
-//------------------------------------------------------------------//
-// Start Bar detctive
-// Return values: 0: no Start Bar, 1: Start Bar
-//------------------------------------------------------------------//
-int StartBarCheck(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     s,r;
-    int width;
-    int w[VW];
-    int n;
 
-    s = 0;
-     width = 0;
-
-    for( Yp = 0; Yp < 15; Yp++ ) {
-        w[Yp] = 0;
-        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-            if( ImageData[Xp + (Yp * HW)] == 1){
-                s++;
-                w[Yp]++;
-            }
-            if( ImageData[Xp + (Yp * HW)] == 0){
-                if(s > width) {
-                    width = s;
-                }
-                s = 0;
-            }
-        }
-    }
-    r = -1;
-    //Detect startbar
-    for( Yp = 0; Yp < 10; Yp++ ) {
-//        if(w[Yp] > 15){ //Startbar length is 10 or more
-        if(width > 12){ //Startbar length is 10 or more
-        	r = 1;
-        }
-    }
-    //Detects that the startbar is gone
-    n = 0;
-    for( Yp = 0; Yp < 15; Yp++ ) {
-//        if(w[Yp] < 6){ //Startbar length is 10 or more
-        if(width < 6){ //Startbar length is 10 or more
-//        	r = 0;
-        	n++;
-            }
-    }
-    if(n == 15)r = 0;
-     /*
-    n = 0;
-    for( Yp = 0; Yp < 15; Yp++ ) {
-        if(w[Yp] < 6){
-            n++;
-        }
-    }
-    if(n == 15)r = -1;
-    */
-    return r;
-}
 
 //------------------------------------------------------------------//
 // RightCrank Check

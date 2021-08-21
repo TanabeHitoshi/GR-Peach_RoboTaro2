@@ -34,6 +34,7 @@ class isCamera{
 		int LaneChangeBlack(void);
 		int Crank_Mark_Check(void);
 		int Crank_Turn_Point(void);
+		int StartBarCheck(void);
 
 		unsigned char   ImageBinary[ ( PIXEL_HW * PIXEL_VW ) ];
 		int wide;				//Line wide
