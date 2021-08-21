@@ -59,23 +59,7 @@
 #define VIDEO_BUFFER_STRIDE    (((PIXEL_HW * DATA_SIZE_PER_PIC) + 31u) & ~31u)
 #define VIDEO_BUFFER_HEIGHT    (PIXEL_VW)
 
-/* Mask set X:Mask on O:Mask off */
-#define MASK2_2         0x66            /* XOOX XOOX */
-#define MASK4_3         0xfe            /* OOOO OOOX */
-#define MASK3_4         0x7f            /* XOOO OOOO */
-#define MASK1_0         0x80            /* OXXX XXXX */
-#define MASK0_1         0x01            /* XXXX XXXO */
-#define MASK1_1         0x81            /* OXXX XXXO */
-#define MASK2_0         0x60            /* XOOX XXXX */
-#define MASK0_2         0x06            /* XXXX XOOX */
-#define MASK3_3         0xe7            /* OOOX XOOO */
-#define MASK0_3         0x07            /* XXXX XOOO */
-#define MASK3_0         0xe0            /* OOOX XXXX */
-#define MASK4_0         0xf0            /* OOOO XXXX */
-#define MASK0_4         0x0f            /* XXXX OOOO */
-#define MASK4_4         0xff            /* OOOO OOOO */
-#define MASK_5_			0x7e			/* XOOO OOOX */
-#define MASK_2_			0x18			/* XXXO OXXX */
+
 
 //------------------------------------------------------------------//
 //Constructor
@@ -132,30 +116,13 @@ unsigned char pushsw_get( void );
 //Shield board
 unsigned char dipsw_get( void );
 
-//------------------------------------------------------------------//
-//Prototype( Digital sensor process )
-//------------------------------------------------------------------//
-
-unsigned char sensor_process( unsigned char *BuffAddrIn, int HW, int VW, int *SENPx, int Y ); /* Only function for interrupt */
-//unsigned char sensor_process8( unsigned char *BuffAddrIn, int HW, int VW, int *SENPx, int Y ); /* Only function for interrupt */
-int sensor_process_Center( unsigned char *ImageData, int HW, int VW, int *SENPx, int Y );
-unsigned char sensor_inp( void );
-unsigned char sensor_inp8( unsigned char mask );
-unsigned char center_inp( void );
 
 //------------------------------------------------------------------//
 //Prototype( Mark detect functions )
 //------------------------------------------------------------------//
 int StartBarCheck(unsigned char *ImageData, int HW, int VW);
-int Crank_Turn_Point(unsigned char *ImageData, int HW, int VW );
-int Crank_Mark_Check( unsigned char *ImageData, int HW, int VW);
-int CrankCheck(unsigned char *ImageData, int HW, int VW );
-int LaneChangeBlack(unsigned char *ImageData, int HW, int VW);
-int LaneChangeHalf(unsigned char *ImageData, int HW, int VW);
-int RightCrankCheck( int percentage );
-int RightLaneChangeCheck( int percentage );
-int LeftCrankCheck( int percentage );
-int LeftLaneChangeCheck( int percentage );
+
+
 //------------------------------------------------------------------//
 //Prototype( Debug functions )
 //------------------------------------------------------------------//
@@ -182,9 +149,7 @@ static volatile int32_t vfield_count2_buff;
 unsigned char   ImageData_A[ ( ( PIXEL_HW * 2) * PIXEL_VW ) ];
 unsigned char   ImageData_B[ ( PIXEL_HW * PIXEL_VW ) ];
 unsigned char   ImageComp_B[ ( PIXEL_HW * PIXEL_VW ) ];
-//unsigned char   ImageBinary[ ( PIXEL_HW * PIXEL_VW ) ];
 
-//double          Rate = 0.125;       /* Reduction ratio              */
 double          Rate = 0.25;       /* Reduction ratio              */
 
 //------------------------------------------------------------------//
@@ -192,49 +157,12 @@ double          Rate = 0.25;       /* Reduction ratio              */
 //------------------------------------------------------------------//
 int             SenError;
 int             Sen1Px[5];
-unsigned char   SenVal1,SenVal8;
-int				SenVal_Center;
-int wide;
+//unsigned char   SenVal1,SenVal8;
+//int				SenVal_Center;
+//int wide;
 //------------------------------------------------------------------//
 //Global variable for Mark detection function
 //------------------------------------------------------------------//
-ImagePartPattern RightCrank = {0,0,0,0,{0},   //percent, Point X, Point Y, Standard_Deviation, Deviation
-    {
-        0,0,0,0,0,0,0, //Binary image
-        0,0,1,1,1,1,1, //Binary image
-        0,0,1,1,0,0,0, //Binary image
-        0,0,1,1,0,0,0
-    },//Binary image
-    7, 4
-};         //Binary Width pixel, Binary Height pixel
-
-ImagePartPattern RightLaneChange = {0,0,0,0,{0},//percent, Point X, Point Y, Standard_Deviation, Deviation
-    {
-        1,1,0,0,0,0,0,0,0,0,0,0,0,0, //Binary image
-        1,1,0,0,0,0,0,0,0,0,0,0,0,0, //Binary image
-        1,1,0,0,0,0,0,0,0,0,0,0,0,0
-    },//Binary image
-    14, 3
-};   //Binary Width pixel, Binary Height pixel
-
-ImagePartPattern LeftCrank = {0,0,0,0,{0},   //percent, Point X, Point Y, Standard_Deviation, Deviation
-    {
-        0,0,0,0,0,0,0, //Binary image
-        1,1,1,1,1,0,0, //Binary image
-        0,0,0,1,1,0,0, //Binary image
-        0,0,0,1,1,0,0
-    },//Binary image
-    7, 4
-};         //Binary Width pixel, Binary Height pixel
-
-ImagePartPattern LeftLaneChange = {0,0,0,0,{0},//percent, Point X, Point Y, Standard_Deviation, Deviation
-    {
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0, //Binary image
-        0,0,0,0,0,0,0,0,0,0,0,1,1,0, //Binary image
-        0,0,0,0,0,0,0,0,0,0,0,1,1,0
-    },//Binary image
-    14, 3
-};   //Binary Width pixel, Binary Height pixel
 
 //------------------------------------------------------------------//
 //Global variable for Trace program
@@ -255,6 +183,7 @@ int                     memory[10000][5];
 int                     m_number;
 int                     cr = 0;
 int                     bar;
+int 					pidValue;
 int                     crank,crank2,crank_turn,lane_half,lane_Black;
 char                    LR;             //CLANK,Lenchang dircection
 char                    mem_lr[] = {'R','R','R','L','R','e'};     //Crank and Lenchange memory
@@ -296,11 +225,11 @@ int main( void )
     wait(0.5);
 
      /* Initialize Pattern Matching */
-    RightCrank.sdevi = Standard_Deviation( RightCrank.binary, RightCrank.devi, RightCrank.w, RightCrank.h );
-    RightLaneChange.sdevi = Standard_Deviation( RightLaneChange.binary, RightLaneChange.devi, RightLaneChange.w, RightLaneChange.h );
+    //RightCrank.sdevi = Standard_Deviation( RightCrank.binary, RightCrank.devi, RightCrank.w, RightCrank.h );
+    //RightLaneChange.sdevi = Standard_Deviation( RightLaneChange.binary, RightLaneChange.devi, RightLaneChange.w, RightLaneChange.h );
 
-    LeftCrank.sdevi = Standard_Deviation(  LeftCrank.binary,  LeftCrank.devi,  LeftCrank.w,  LeftCrank.h );
-    LeftLaneChange.sdevi = Standard_Deviation(  LeftLaneChange.binary,  LeftLaneChange.devi,  LeftLaneChange.w,  LeftLaneChange.h );
+    //LeftCrank.sdevi = Standard_Deviation(  LeftCrank.binary,  LeftCrank.devi,  LeftCrank.w,  LeftCrank.h );
+    //LeftLaneChange.sdevi = Standard_Deviation(  LeftLaneChange.binary,  LeftLaneChange.devi,  LeftLaneChange.w,  LeftLaneChange.h );
 
     initFlag = 0;                       /* Initialization end       */
 
@@ -363,10 +292,10 @@ int main( void )
                         ImageData_Serial_Out4( ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate) );
 //                        SenVal8	= sensor_process8( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 12 );
 //                        pc.printf( "threshold %3d \n\r", Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate)) );
-                        pc.printf( "sensor_process8 %x \n\r", SenVal8 );
+                        pc.printf( "sensor_process8 %x \n\r", c.SenVal8 );
 
                 	}
-//                    break;
+                   break;
                 default:
                     break;
             }
@@ -407,21 +336,7 @@ int main( void )
                     pattern = 2;
                 }
                 m.motor2( 20, 20 );
-                switch( (sensor_inp()&0x0f) ) {
-                    case 0x00:
-                    	m.handle( 0 );
-                        break;
-                    case 0x02:
-                    case 0x03:
-                    	m.handle( 3 );
-                        break;
-                    case 0x04:
-                    case 0x0c:
-                    	m.handle( -3 );
-                        break;
-                    default:
-                        break;
-                }
+                m.handle(c.SenVal_Center);
             break;
             case 2:
             	m.motor(0,0);
@@ -480,7 +395,7 @@ int main( void )
             		pattern = 50;
             		break;
             	}
-            	switch( sensor_inp8(MASK3_3) ) {
+            	switch( c.sensor_inp8(MASK3_3) ) {
         		/* 1 */
             		case 0x00: /* xxx_ _xxx */
             			m.handle( 0 );
@@ -495,7 +410,7 @@ int main( void )
                 	   m.handle( -3 );
                 	   m.motor( m.diff(100), 100 );
        				break;
-       			/* 3?ｽ｢ */
+       			/* 3�ｽ｢ */
                    case 0x06: /* xxx_ _OOx */
                 	   m.handle( 5 );
                 	   m.motor( 80, m.diff(80) );
@@ -504,7 +419,7 @@ int main( void )
                 	   m.handle( -5 );
                 	   m.motor( m.diff(80), 80 );
         		   break;
-        		/* 4?ｽ｣ */
+        		/* 4�ｽ｣ */
                    case 0x02: /* xxx_ _xOx */
                 	   m.handle( 10 );
                 	   m.motor( 60, m.diff(60) );
@@ -552,12 +467,12 @@ int main( void )
             		break;
             	}
        		if( LR == 'L' ){
-         	        if( sensor_inp8(MASK3_3) == 0x60 ) {
+         	        if( c.sensor_inp8(MASK3_3) == 0x60 ) {
          	            pattern = 11;
          	        }
          		}
          		if( LR == 'R' ){
-         	        if( sensor_inp8(MASK3_3) == 0x06 ) {
+         	        if( c.sensor_inp8(MASK3_3) == 0x06 ) {
          	            pattern = 11;
          	        }
          		}
@@ -574,25 +489,22 @@ int main( void )
             		break;
             	}
 
-            	if(SenVal_Center < 0) sp = -SenVal_Center;
-            	else				  sp = SenVal_Center;
+            	if(c.SenVal_Center < 0) sp = -c.SenVal_Center;
+            	else				  sp = c.SenVal_Center;
 
             	if( sp < 5){
             		sp = 0;
-            		hd = SenVal_Center * 15/10;
-            	}else if(sp < 10){
-            		sp = sp*3;
-            		hd = SenVal_Center * 15/10;
-              	}else if(sp < 15){
-                    		sp = sp*3;
-                    		hd = SenVal_Center * 15/10;
+             	}else if(sp < 10){
+            		sp = sp /2;
+               	}else if(sp < 15){
+                 	sp = sp*3;
               	}else{
             		sp = sp*5;
-            		hd = SenVal_Center * 18/10;
+            		cnt1 = 0;
             		pattern = 22;
-            	}
+             	}
 
-            	m.handle(hd);
+            	m.handle(pidValue);
             	m.run( 100 - sp );
          		break;
 
@@ -604,14 +516,15 @@ int main( void )
             		pattern = 50;
             		break;
             	}
-         	   if(SenVal_Center < 5 && SenVal_Center > -5 && SenVal_Center != 0 ) {
+            	if(cnt1 > 100)m.run(50);
+         	   if(c.SenVal_Center < 5 && c.SenVal_Center > -5 && c.SenVal_Center != 0 ) {
          	            pattern = 11;
          	   }
            		break;
             case 30:
                 led_m_set( CRANK );
                 led_out( 0x1 );
-                m.handle(SenVal_Center);
+                m.handle(c.SenVal_Center);
                 m.motor(-100,-100);
 //                if( cnt1 > mem_crk[n_lr] ) {
                 if( cnt1 > 150 ) {
@@ -636,7 +549,7 @@ int main( void )
                         fall_flag = 1;
                         break;
                }
-               m.handle(SenVal_Center);
+               m.handle(c.SenVal_Center);
                m.motor2(30,30);
             break;
             case 32:
@@ -646,7 +559,7 @@ int main( void )
                         fall_flag = 1;
                         break;
                }
-                m.handle(SenVal_Center);
+                m.handle(c.SenVal_Center);
                 m.motor2(30,30);
             break;
 
@@ -655,7 +568,7 @@ int main( void )
                     /* Left crank */
                 	m.handle( -40 );
                 	m.motor2( 0,60 );
-                    if( sensor_inp8(MASK2_0) && cnt1 > 500){
+                    if( c.sensor_inp8(MASK2_0) && cnt1 > 500){
                     	pattern = 11;
                     	cnt1 = 0;
                     }
@@ -663,7 +576,7 @@ int main( void )
                     /* Right crank */
                 	m.handle( 40 );
                 	m.motor2( 60,0 );
-                    if( sensor_inp8(MASK0_2) && cnt1 > 500){
+                    if( c.sensor_inp8(MASK0_2) && cnt1 > 500){
                     	pattern = 11;
                     	cnt1 = 0;
                     	fall_flag = 0;
@@ -675,7 +588,8 @@ int main( void )
  /* Lane change processing at 1st process */
             case 50:
             	m.handle( 0 );
-            	m.run( 0 );
+            	m.motor(-30,-30);
+//            	m.run( 0 );
 //                LR = mem_lr[n_lr];
                 if( lane_half == 1){
                         LR = 'L';
@@ -689,9 +603,9 @@ int main( void )
             case 51:
                 led_m_set( LCHANGE );
                 led_out( 0x01 );
-                if( LR == 'L' ) m.handle(SenVal_Center -8);
-                else            m.handle(SenVal_Center +8);
-                m.run(60);
+                if( LR == 'L' ) m.handle(c.SenVal_Center -8);
+                else            m.handle(c.SenVal_Center +8);
+                m.run(50);
             	if( crank ){
             		pattern = 30;
             		cnt1 = 0;
@@ -716,11 +630,13 @@ int main( void )
                     if(LR == 'L'){
                         /* Left lane change */
                     	m.handle( -12 );
-                    	m.motor2( 30,20 );
+                    	m.run( 30 );
+//                    	m.motor2( 30,20 );
                     }else{
                         /* Right lane change */
                     	m.handle( 12 );
-                    	m.motor2( 20,30 );
+                    	m.run( 30 );
+//                    	m.motor2( 20,30 );
                     }
                     pattern = 525;
                     cnt1 = 0;
@@ -729,21 +645,21 @@ int main( void )
 
             case 525:
             	if( LR == 'L'){
-            		if(SenVal_Center < -10 && SenVal_Center > -20 && SenVal_Center != 0){
+            		if(c.SenVal_Center < -10 && c.SenVal_Center > -20 && c.SenVal_Center != 0){
             			m.handle( 0 );
             			m.run( 30 );
             		}
-            		if(SenVal_Center < -5 && SenVal_Center > -10 && SenVal_Center != 0){
+            		if(c.SenVal_Center < -5 && c.SenVal_Center > -10 && c.SenVal_Center != 0){
             			pattern = 53;
             		}
 
             	}
             	if( LR == 'R'){
-            		if(SenVal_Center < 20 && SenVal_Center > 10 && SenVal_Center != 0){
+            		if(c.SenVal_Center < 20 && c.SenVal_Center > 10 && c.SenVal_Center != 0){
                     	m.handle( 0 );
                     	m.run( 30 );
             		}
-               		if(SenVal_Center < 10 && SenVal_Center > 5 && SenVal_Center != 0){
+               		if(c.SenVal_Center < 10 && c.SenVal_Center > 5 && c.SenVal_Center != 0){
                			pattern = 53;
                		}
             	}
@@ -751,7 +667,7 @@ int main( void )
 
             case 53:
                 /* lane change end check */
-            	if(SenVal_Center < 5 && SenVal_Center > -5 && SenVal_Center != 0){
+            	if(c.SenVal_Center < 5 && c.SenVal_Center > -5 && c.SenVal_Center != 0){
             		led_m_set( RUN );
             		led_out( 0x0 );
             		pattern = 54;
@@ -764,7 +680,7 @@ int main( void )
                 break;
 
             case 54:
-            	m.handle(SenVal_Center *2);
+            	m.handle(c.SenVal_Center *2);
             	m.motor( 50 , 50 );
             	if(cnt1 > 1200){
             		pattern = 11;
@@ -1023,37 +939,38 @@ void intTimer( void )
         case 6:
             Binarization( ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate), c.ImageBinary, threshold_buff );
 //            if( !initFlag ) SenVal1 = sensor_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 12 );
-            crank_turn = Crank_Turn_Point( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+            crank_turn = c.Crank_Turn_Point();
 //            crank2 = CrankCheck( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
-            crank = Crank_Mark_Check( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+            crank = c.Crank_Mark_Check();
 //            lane = LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
             bar = StartBarCheck( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
             break;
         case 7:
-            if( !initFlag ) SenVal1 = sensor_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 12 );
-            if( !initFlag ) SenVal8	= c.sensor_process8( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 24 );
-            if( !initFlag ) SenVal_Center	= sensor_process_Center( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 24 );
+//            if( !initFlag ) SenVal1 = sensor_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 12 );
+            if( !initFlag ) c.SenVal8	= c.sensor_process8();
+            if( !initFlag ) c.SenVal_Center	= c.sensor_process_Center();
+            if( !initFlag ) pidValue	= c.PID_process();
           break;
         case 8:
-            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightCrank, 2, 10, 2, 8 );
-            lane_half = LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
-            lane_Black = LaneChangeBlack( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
+//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightCrank, 2, 10, 2, 8 );
+            lane_half = c.LaneChangeHalf();
+            lane_Black = c.LaneChangeBlack();
              break;
         case 9:
-            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightLaneChange, 0, 2, 1, 3 );
+//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightLaneChange, 0, 2, 1, 3 );
             break;
         case 10:
-            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &LeftCrank, 4, 12, 2, 8 );
+//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &LeftCrank, 4, 12, 2, 8 );
             break;
         case 11:
-            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &LeftLaneChange, 1, 3, 1, 3 );
+//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &LeftLaneChange, 1, 3, 1, 3 );
             break;
         case 12:
            if(pattern > 9 && pattern < 1000) {
                 memory[m_number][0] = pattern;
-                memory[m_number][1] = sensor_inp8(MASK4_4);
-                memory[m_number][2] = SenVal_Center;
-                memory[m_number][3] = wide;
+                memory[m_number][1] = c.sensor_inp8(MASK4_4);
+                memory[m_number][2] = c.SenVal_Center;
+                memory[m_number][3] = c.wide;
                 memory[m_number][4] = 0;
                 m_number++;
                 if(m_number > 10000)m_number = 10000;
@@ -1064,7 +981,7 @@ void intTimer( void )
 //            threshold_buff = THRESHOLD;
             break;
         case 14:
-        	if( fall_flag == 0 && wide == 99 && lane_Black == 1) pattern = 200;
+        	if( fall_flag == 0 && c.wide == 99 && lane_Black == 1) pattern = 200;
             break;
         default:
             break;
@@ -1200,129 +1117,8 @@ unsigned char dipsw_get( void )
     return 7;
 }
 
-//******************************************************************//
-// digital sensor functions
-//*******************************************************************/
-
-//------------------------------------------------------------------//
-//sensor_process Function(Interrupt function)
-//------------------------------------------------------------------//
-unsigned char sensor_process( unsigned char *BuffAddrIn, int HW, int VW, int *SENPx, int Y )
-{
-    int sensor;
-    int data;
-
-    sensor  = 0x00;
-    if( VW < Y ) {
-        pc.printf( "sensor process function error\n\r" );
-        return sensor;
-    }
-//    pc.printf( "SENPx[ 4 ]%d SENPx[ 3 ]%d SENPx[ 2 ]%d SENPx[ 1 ]%d SENPx[ 0 ]%d\n\r",SENPx[ 4 ],SENPx[ 3 ],SENPx[ 2 ],SENPx[ 1 ],SENPx[ 0 ] );
-
-    data    = BuffAddrIn[ ( Y * HW ) + SENPx[ 4 ] ] & 0x01;
-    sensor |= ( data << 4 ) & 0x10;
-    data    = BuffAddrIn[ ( Y * HW ) + SENPx[ 3 ] ] & 0x01;
-    sensor |= ( data << 3 ) & 0x08;
-    data    = BuffAddrIn[ ( Y * HW ) + SENPx[ 2 ] ] & 0x01;
-    sensor |= ( data << 2 ) & 0x04;
-    data    = BuffAddrIn[ ( Y * HW ) + SENPx[ 1 ] ] & 0x01;
-    sensor |= ( data << 1 ) & 0x02;
-    sensor |= BuffAddrIn[ ( Y * HW ) + SENPx[ 0 ] ] & 0x01;
-
-    sensor &= 0x1f;
-
-    return sensor;
-}
 
 
-
-int sensor_process_Center( unsigned char *ImageData, int HW, int VW, int *SENPx, int Y )
-{
-    int     Xp, Yp;
-    int white;
-    int t;
-
-    int center;
-	int Lsensor,Rsensor;
-    white = 0;
-    t = 0;
-    wide = 0;
-
-
-    //    pc.printf( "\n\r sensor_process8 \n\r");
- //  for( Yp = 0; Yp < VW; Yp++ ) {
- //       pc.printf( "%2d: ", Yp );
-//        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%3d ", ImageData[Xp + (Y * HW)] );
-//        }
-//        pc.printf( "\n\r" );
-//    }
-        for( Xp = 0; Xp < HW; Xp++ ) {
-    		if(t==0){	/* ?ｿｽ?ｽｼ隨ｬ謔ｽ騾ｶ?ｽｮ邵ｺ?ｽｮ騾具ｽｽ驍ｱ?ｿｽ */
-    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ騾具ｽｽ */
-    				white++;
-    				Lsensor = Xp;
-    				t = 1;
-    			}
-    		}else if(t==1){
-    			if( ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ騾具ｽｽ */
-    				white++;
-    				Lsensor = Xp;
-    				t = 2;
-    			}
-    		}else if(t==2){	/* ?ｿｽ?ｽｼ隨ｬ謔ｽ騾ｶ?ｽｮ邵ｺ?ｽｮ魄溷?､?ｽｷ?ｿｽ */
-    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ魄滂ｿｽ */
-    				Rsensor = Xp;
-    				t = 3;
-    			}
-    		}else if(t==3){
-    			if( !ImageData[Xp + (Y * HW)] ){		/* 陝ｾ?ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ?ｿｽ?ｽｮ魄滂ｿｽ */
-    				Rsensor = Xp;
-    				t = 4;
-    		}
-    		}
-        }
-
- //      if( white >= 5){
-    		wide = Rsensor - Lsensor;
-    	if(wide > 0 && wide < 40){
-    		if(wide > 5){
-    			center = (Rsensor + Lsensor)/2 - 20;
-    		}else{
-    			center = 0;
-    		}
-       }else{
-    	   center = 0;
-    	   wide = 99;
-       }
-//            pc.printf( "%3d ", ImageData[Xp + (Y * HW)] );
-  //       sensor = s;
- //       pc.printf( "    sensor = %x \n\r",sensor );
-        return center;
-//    pc.printf( "\033[%dA", VW );
-
-}
-
-
-//------------------------------------------------------------------//
-//sensor Function
-//------------------------------------------------------------------//
-unsigned char sensor_inp( void )
-{
-    return SenVal1 & 0x0f;
-}
-
-unsigned char sensor_inp8( unsigned char mask )
-{
-    return SenVal8 & mask;
-}
-//------------------------------------------------------------------//
-//sensor Function
-//------------------------------------------------------------------//
-unsigned char center_inp( void )
-{
-    return ( SenVal1 >> 4 ) & 0x01;
-}
 //------------------------------------------------------------------//
 // Start Bar detctive
 // Return values: 0: no Start Bar, 1: Start Bar
@@ -1383,145 +1179,12 @@ int StartBarCheck(unsigned char *ImageData, int HW, int VW )
     */
     return r;
 }
-//------------------------------------------------------------------//
-// Crank Check
-// Return values: 0: no crank 1: Left crank 2: Right crank
-//------------------------------------------------------------------//
-int Crank_Turn_Point(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     r;
-    int     l_START,l_STOP;
-    int     w;
-    int     Center;
-    int     state;
-
-    w = 0;
-    l_START = 0; l_STOP = 19;
-    state = 0;
-
-    Yp = 20;
-    for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-        if( ImageData[Xp + (Yp * HW)] == 1){
-            if(state == 0) l_START = Xp;
-            w++;
-            state = 1;
-        }else{
-            if( state == 1){
-                l_STOP = Xp;
-                state = 2;
-            }
-        }
-    }
-    if(!(l_START == 0 && l_STOP == 39)){
-        Center = (l_START + l_STOP ) /2;
-    }
-    //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
-    r = 0;
-    if(w >= 15){ //Cross line length is 15 or more
-        if( Center <= 19) return 1;
-        else return 2;
-//        r = 1;
-    }
-    if(w == 0){
-        r = -1;
-    }
-    return r;
-}
-//------------------------------------------------------------------//
-// Crank Check
-// Return values: 0: no Start Bar, 1: Start Bar
-//------------------------------------------------------------------//
-int Crank_Mark_Check(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     s,r;
-    int width;
-    int w[VW];
-//    int n;
-
-    s = 0;
-     width = 0;
-
-    for( Yp = 15; Yp < 30; Yp++ ) {
-        w[Yp] = 0;
-        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-            if( ImageData[Xp + (Yp * HW)] == 1){
-                s++;
-                w[Yp]++;
-            }
-            if( ImageData[Xp + (Yp * HW)] == 0){
-                if(s > width) {
-                    width = s;
-                }
-                s = 0;
-            }
-        }
-    }
-    r = 0;
-    for( Yp = 15; Yp < 30; Yp++ ) {
-        if(w[Yp] > 30){
-            r = 1;
-        }
-    }
-     /*
-    n = 0;
-    for( Yp = 0; Yp < 15; Yp++ ) {
-        if(w[Yp] < 6){
-            n++;
-        }
-    }
-    if(n == 15)r = -1;
-    */
-    return r;
-}
 
 //------------------------------------------------------------------//
 // RightCrank Check
 // Return values: 0: no triangle mark, 1: Triangle mark
 //------------------------------------------------------------------//
-int CrankCheck(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     s,r;
-    int width;
-    int w[VW];
-    int y;
-
-    s = 0;
-     width = 0;
-
-    for( Yp = 14; Yp < 29; Yp++ ) {
-        w[Yp] = 0;
-        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-            if( ImageData[Xp + (Yp * HW)] == 1){
-                s++;
-                w[Yp]++;
-            }
-            if( ImageData[Xp + (Yp * HW)] == 0){
-                if(s > width) {
-                    width = s;
-                    y = Yp;
-                }
-                s = 0;
-            }
-        }
-        if(width > 20)break;
-    }
-//    r = 0;
-    if(width >= 20){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ鬮滂ｽｷ邵ｺ霈披?ｲ10闔会ｽ･闕ｳ?ｿｽ
- //        if(y > 0 && w[y - 1] < 15){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ陷鷹亂?ｿｽ?ｽｯ邵ｺ?ｽｻ邵ｺ?ｽｨ郢ｧ阮吮?宣ｮ溷?ｵﾂｰ
- //           if(w[y + 3] < 15){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ隹ｺ?ｽ｡邵ｺ?ｽｯ郢晏現ﾎ樒ｹ晢ｽｼ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ
-                r = 1;
- //           }
- //       }
-    }
- //   return r;
-    return width;
-}
+/*
 int RightCrankCheck( int percentage )
 {
     int ret;
@@ -1545,80 +1208,13 @@ int LeftCrankCheck( int percentage )
 
     return ret;
 }
+*/
 //------------------------------------------------------------------//
 // RightLaneChange Check
 // Return values: 0: no triangle mark, 1: Triangle mark
 //------------------------------------------------------------------//
-//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶?壹♂郢晢ｽｳ郢ｧ?ｽｸ邵ｺ?ｽｮ陷茨ｽｨ邵ｺ?ｽｦ魄溷?ｵ?ｽ帝囎荵昶命邵ｺ莉｣?ｽ?
-int LaneChangeBlack(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     s = 0;
 
-    for( Yp = 15; Yp < 30; Yp++ ) {
-        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-            if( ImageData[Xp + (Yp * HW)] == 1) s++;
-        }
-//        pc.printf( "\n\r" );
-    }
-    if(s == 0) return 1;
-    else return 0;
-
-}
-//郢晢ｽｬ郢晢ｽｼ郢晢ｽｳ郢昶?壹♂郢晢ｿｽ郢ｧ?ｽｯ邵ｺ?ｽｮ郢昜ｸ奇ｿｽ?ｽｼ郢晁ｼ釆帷ｹｧ?ｽ､郢晢ｽｳ郢ｧ螳夲ｽｦ荵昶命邵ｺ莉｣?ｽ?
-int LaneChangeHalf(unsigned char *ImageData, int HW, int VW )
-{
-    int     Xp, Yp;
-    int     r;
-    int     l_START,l_STOP;
-    int     w;
-    int     Center;
-    int     state;
-
-    w = 0;
-    l_START = 0; l_STOP = 19;
-    state = 0;
-
-//    Yp = 7;
-    for( Yp = 15; Yp < 30; Yp++){
-		for( Xp = 0; Xp < HW; Xp++ ) {
-	//            pc.printf( "%d ", ImageData[Xp + (Yp * HW)] );
-			if( ImageData[Xp + (Yp * HW)] == 1){
-				if(state == 0) l_START = Xp;
-				w++;
-				state = 1;
-			}else{
-				if( state == 1){
-					l_STOP = Xp;
-					state = 2;
-				}
-			}
-		}
-		if(w < 20){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ鬮滂ｽｷ邵ｺ霈披?ｲ15闔会ｽ･闕ｳ?ｿｽ
-		    w = 0;
-		    l_START = 0; l_STOP = 39;
-		    state = 0;
-		}else{
-			break;
-		}
-    }
-    if(!(l_START == 0 && l_STOP == 39)){
-        Center = (l_START + l_STOP ) /2;
-    }
-    //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
-    r = 0;
-    if(w >= 20){ //郢ｧ?ｽｯ郢晢ｽｭ郢ｧ?ｽｹ郢晢ｽｩ郢ｧ?ｽ､郢晢ｽｳ邵ｺ?ｽｮ鬮滂ｽｷ邵ｺ霈披?ｲ7闔会ｽ･闕ｳ?ｿｽ
-        if( Center <= 20) return 1;
-        else return 2;
-//        r = 1;
-    }
-    if(w == 0){
-        r = -1;
-    }
-    return r;
-}
-
+/*
 int RightLaneChangeCheck( int percentage )
 {
     int ret;
@@ -1642,7 +1238,7 @@ int LeftLaneChangeCheck( int percentage )
 
     return ret;
 }
-
+*/
 //******************************************************************//
 // Debug functions
 //*******************************************************************/
@@ -1678,12 +1274,12 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
 
     //Add display
     pc.printf( "\n\r" );
-//    pc.printf( "sensor_inp = 0x%2x\n\r", sensor_inp8(MASK4_4) );
+    pc.printf( "sensor_inp = 0x%2x\n\r", c.sensor_inp8(MASK4_4) );
 //      pc.printf( "wide = %3d\n\r", wide );
-      pc.printf( "dipsw = %3d\n\r", m.sw_data );
-    pc.printf( "Center = %3d\n\r", SenVal_Center );
-//    pc.printf( "LaneChangeHalf %d\n\r",LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
-    pc.printf( "LaneChangeBlack %d\n\r",LaneChangeBlack( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
+//      pc.printf( "dipsw = %3d\n\r", m.sw_data );
+    pc.printf( "Center = %3d\n\r", c.SenVal_Center );
+//    pc.printf( "LaneChangeHalf %d\n\r",c.LaneChangeHalf());
+    pc.printf( "LaneChangeBlack %d\n\r",c.LaneChangeBlack());
 //    pc.printf( "center_inp = 0x%02x\n\r", center_inp() );
 //    pc.printf( "threshold= %d\n\r", Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate)));
 //      pc.printf( "RightCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightCrankCheck(80), RightCrank.p, RightCrank.x, RightCrank.y );
@@ -1693,8 +1289,8 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
 //    pc.printf( "RightLaneChange = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightLaneChangeCheck(80), RightLaneChange.p, RightLaneChange.x, RightLaneChange.y );
 //    pc.printf( "LeftCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", LeftCrankCheck(80), LeftCrank.p, LeftCrank.x, LeftCrank.y );
 //    pc.printf( "LeftLaneChange = %01d, = %3d%%, X = %2d, Y = %2d\n\r", LeftLaneChangeCheck(80), LeftLaneChange.p, LeftLaneChange.x, LeftLaneChange.y );
-    pc.printf( "Crank_Mark_Check %d\n\r",Crank_Mark_Check( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
-        pc.printf( "CrankturnPoint %d\n\r",Crank_Turn_Point( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate) ));
+    pc.printf( "Crank_Mark_Check %d\n\r",c.Crank_Mark_Check());
+        pc.printf( "CrankturnPoint %d\n\r",c.Crank_Turn_Point());
     pc.printf( "\n\r" );
     VW += 6;
 
