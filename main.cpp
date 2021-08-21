@@ -517,6 +517,7 @@ int main( void )
             		break;
             	}
             	if(cnt1 > 100)m.run(50);
+
          	   if(c.SenVal_Center < 5 && c.SenVal_Center > -5 && c.SenVal_Center != 0 ) {
          	            pattern = 11;
          	   }
@@ -938,32 +939,24 @@ void intTimer( void )
             break;
         case 6:
             Binarization( ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate), c.ImageBinary, threshold_buff );
-//            if( !initFlag ) SenVal1 = sensor_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 12 );
-            crank_turn = c.Crank_Turn_Point();
-//            crank2 = CrankCheck( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
-            crank = c.Crank_Mark_Check();
-//            lane = LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
             bar = StartBarCheck( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
             break;
         case 7:
-//            if( !initFlag ) SenVal1 = sensor_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), Sen1Px, 12 );
             if( !initFlag ) c.SenVal8	= c.sensor_process8();
             if( !initFlag ) c.SenVal_Center	= c.sensor_process_Center();
             if( !initFlag ) pidValue	= c.PID_process();
           break;
         case 8:
-//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightCrank, 2, 10, 2, 8 );
+            crank_turn = c.Crank_Turn_Point();
+            crank = c.Crank_Mark_Check();
+            break;
+        case 9:
             lane_half = c.LaneChangeHalf();
             lane_Black = c.LaneChangeBlack();
-             break;
-        case 9:
-//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &RightLaneChange, 0, 2, 1, 3 );
-            break;
+           break;
         case 10:
-//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &LeftCrank, 4, 12, 2, 8 );
             break;
         case 11:
-//            if( !initFlag ) PatternMatching_process( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate), &LeftLaneChange, 1, 3, 1, 3 );
             break;
         case 12:
            if(pattern > 9 && pattern < 1000) {
@@ -978,7 +971,6 @@ void intTimer( void )
             break;
         case 13:
             threshold_buff = Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
-//            threshold_buff = THRESHOLD;
             break;
         case 14:
         	if( fall_flag == 0 && c.wide == 99 && lane_Black == 1) pattern = 200;

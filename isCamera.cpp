@@ -59,34 +59,26 @@ int isCamera::sensor_process_Center(void)
     HW = PIXEL_HW * rate;
     VW = PIXEL_VW * rate;
 
-    //    pc.printf( "\n\r sensor_process8 \n\r");
- //  for( Yp = 0; Yp < VW; Yp++ ) {
- //       pc.printf( "%2d: ", Yp );
-//        for( Xp = 0; Xp < HW; Xp++ ) {
-//            pc.printf( "%3d ", ImageData[Xp + (Y * HW)] );
-//        }
-//        pc.printf( "\n\r" );
-//    }
         for( Xp = 0; Xp < HW; Xp++ ) {
-    		if(t==0){	/* �ｿｽ�ｽｼ隨ｬ謔ｽ騾ｶ�ｽｮ邵ｺ�ｽｮ騾具ｽｽ驍ｱ�ｿｽ */
-    			if( ImageBinary[Xp + (Y_axis * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ騾具ｽｽ */
+    		if(t==0){	/* �ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｼ髫ｨ�ｽｬ隰費ｽｽ鬨ｾ�ｽｶ�ｿｽ�ｽｽ�ｽｮ驍ｵ�ｽｺ�ｿｽ�ｽｽ�ｽｮ鬨ｾ蜈ｷ�ｽｽ�ｽｽ鬩搾ｽｱ�ｿｽ�ｽｿ�ｽｽ */
+    			if( ImageBinary[Xp + (Y_axis * HW)] ){		/* 髯晢ｽｾ�ｿｽ�ｽｽ�ｽｦ驍ｵ�ｽｺ闕ｵ譎｢�ｽｽ闃ｽ�ｽｭ蟷｢�ｽｿ�ｽｽ髯具ｽｻ隴擾ｽｴ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｮ鬨ｾ蜈ｷ�ｽｽ�ｽｽ */
     				white++;
     				Lsensor = Xp;
     				t = 1;
     			}
     		}else if(t==1){
-    			if( ImageBinary[Xp + (Y_axis * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ騾具ｽｽ */
+    			if( ImageBinary[Xp + (Y_axis * HW)] ){		/* 髯晢ｽｾ�ｿｽ�ｽｽ�ｽｦ驍ｵ�ｽｺ闕ｵ譎｢�ｽｽ闃ｽ�ｽｭ蟷｢�ｽｿ�ｽｽ髯具ｽｻ隴擾ｽｴ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｮ鬨ｾ蜈ｷ�ｽｽ�ｽｽ */
     				white++;
     				Lsensor = Xp;
     				t = 2;
     			}
-    		}else if(t==2){	/* �ｿｽ�ｽｼ隨ｬ謔ｽ騾ｶ�ｽｮ邵ｺ�ｽｮ魄溷�､�ｽｷ�ｿｽ */
-    			if( !ImageBinary[Xp + (Y_axis * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ魄滂ｿｽ */
+    		}else if(t==2){	/* �ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｼ髫ｨ�ｽｬ隰費ｽｽ鬨ｾ�ｽｶ�ｿｽ�ｽｽ�ｽｮ驍ｵ�ｽｺ�ｿｽ�ｽｽ�ｽｮ鬲�貅ｷ�ｿｽ�ｽ､�ｿｽ�ｽｽ�ｽｷ�ｿｽ�ｽｿ�ｽｽ */
+    			if( !ImageBinary[Xp + (Y_axis * HW)] ){		/* 髯晢ｽｾ�ｿｽ�ｽｽ�ｽｦ驍ｵ�ｽｺ闕ｵ譎｢�ｽｽ闃ｽ�ｽｭ蟷｢�ｽｿ�ｽｽ髯具ｽｻ隴擾ｽｴ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｮ鬲�貊ゑｽｿ�ｽｽ */
     				Rsensor = Xp;
     				t = 3;
     			}
     		}else if(t==3){
-    			if( !ImageBinary[Xp + (Y_axis * HW)] ){		/* 陝ｾ�ｽｦ邵ｺ荵晢ｽ芽ｭ幢ｿｽ陋ｻ譏ｴ�ｿｽ�ｽｮ魄滂ｿｽ */
+    			if( !ImageBinary[Xp + (Y_axis * HW)] ){		/* 髯晢ｽｾ�ｿｽ�ｽｽ�ｽｦ驍ｵ�ｽｺ闕ｵ譎｢�ｽｽ闃ｽ�ｽｭ蟷｢�ｽｿ�ｽｽ髯具ｽｻ隴擾ｽｴ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｮ鬲�貊ゑｽｿ�ｽｽ */
     				Rsensor = Xp;
     				t = 4;
     		}
@@ -105,12 +97,8 @@ int isCamera::sensor_process_Center(void)
     	   center = 0;
     	   wide = 99;
        }
-//            pc.printf( "%3d ", ImageData[Xp + (Y * HW)] );
-  //       sensor = s;
- //       pc.printf( "    sensor = %x \n\r",sensor );
-        return center;
-//    pc.printf( "\033[%dA", VW );
 
+        return center;
 }
 
 // Calculate the pid value
@@ -170,7 +158,7 @@ int isCamera::LaneChangeHalf(void)
 				}
 			}
 		}
-		if(w < 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ15闔会ｽ･闕ｳ�ｿｽ
+		if(w < 20){ //驛｢�ｽｧ�ｿｽ�ｽｽ�ｽｯ驛｢譎｢�ｽｽ�ｽｭ驛｢�ｽｧ�ｿｽ�ｽｽ�ｽｹ驛｢譎｢�ｽｽ�ｽｩ驛｢�ｽｧ�ｿｽ�ｽｽ�ｽ､驛｢譎｢�ｽｽ�ｽｳ驍ｵ�ｽｺ�ｿｽ�ｽｽ�ｽｮ鬯ｮ貊ゑｽｽ�ｽｷ驍ｵ�ｽｺ髴域喚�ｿｽ�ｽｲ15髣比ｼ夲ｽｽ�ｽ･髣包ｽｳ�ｿｽ�ｽｿ�ｽｽ
 		    w = 0;
 		    l_START = 0; l_STOP = 39;
 		    state = 0;
@@ -183,7 +171,7 @@ int isCamera::LaneChangeHalf(void)
     }
     //pc.printf( "%d %d %d \n\r",l_START,l_STOP,Center );
     r = 0;
-    if(w >= 20){ //郢ｧ�ｽｯ郢晢ｽｭ郢ｧ�ｽｹ郢晢ｽｩ郢ｧ�ｽ､郢晢ｽｳ邵ｺ�ｽｮ鬮滂ｽｷ邵ｺ霈披�ｲ7闔会ｽ･闕ｳ�ｿｽ
+    if(w >= 20){ //驛｢�ｽｧ�ｿｽ�ｽｽ�ｽｯ驛｢譎｢�ｽｽ�ｽｭ驛｢�ｽｧ�ｿｽ�ｽｽ�ｽｹ驛｢譎｢�ｽｽ�ｽｩ驛｢�ｽｧ�ｿｽ�ｽｽ�ｽ､驛｢譎｢�ｽｽ�ｽｳ驍ｵ�ｽｺ�ｿｽ�ｽｽ�ｽｮ鬯ｮ貊ゑｽｽ�ｽｷ驍ｵ�ｽｺ髴域喚�ｿｽ�ｽｲ7髣比ｼ夲ｽｽ�ｽ･髣包ｽｳ�ｿｽ�ｽｿ�ｽｽ
         if( Center <= 20) return 1;
         else return 2;
 //        r = 1;
