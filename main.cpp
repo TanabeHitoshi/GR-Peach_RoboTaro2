@@ -59,8 +59,6 @@
 #define VIDEO_BUFFER_STRIDE    (((PIXEL_HW * DATA_SIZE_PER_PIC) + 31u) & ~31u)
 #define VIDEO_BUFFER_HEIGHT    (PIXEL_VW)
 
-
-
 //------------------------------------------------------------------//
 //Constructor
 //------------------------------------------------------------------//
@@ -116,12 +114,10 @@ unsigned char pushsw_get( void );
 //Shield board
 unsigned char dipsw_get( void );
 
-
 //------------------------------------------------------------------//
 //Prototype( Mark detect functions )
 //------------------------------------------------------------------//
 int StartBarCheck(unsigned char *ImageData, int HW, int VW);
-
 
 //------------------------------------------------------------------//
 //Prototype( Debug functions )
@@ -157,9 +153,6 @@ double          Rate = 0.25;       /* Reduction ratio              */
 //------------------------------------------------------------------//
 int             SenError;
 int             Sen1Px[5];
-//unsigned char   SenVal1,SenVal8;
-//int				SenVal_Center;
-//int wide;
 //------------------------------------------------------------------//
 //Global variable for Mark detection function
 //------------------------------------------------------------------//
@@ -177,7 +170,6 @@ volatile int            pattern;        /* Pattern numbers          */
 volatile int            led_pattern;    /* led_m_process function only */
 volatile int            initFlag;       /* Initialize flag          */
 volatile int            threshold_buff; /* Binarization function only */
-//volatile int            handle_buff;    /* diff function only       */
 
 int                     memory[10000][5];
 int                     m_number;
