@@ -160,6 +160,7 @@ int             Sen1Px[5];
 volatile unsigned long  cnt0;           /* Used by timer function   */
 volatile unsigned long  cnt1;           /* Used within main         */
 volatile unsigned long  cntGate;           /* Used within main         */
+volatile long  cnt_curve;           /* Used curve         */
 volatile long  cnt_dammy;           /* Used within main         */
 volatile int            pattern;        /* Pattern numbers          */
 
@@ -172,8 +173,9 @@ int                     m_number;
 int                     cr = 0;
 int                     bar;
 int 					pidValue;
+int						handle_value;
 int                     crank,crank2,crank_turn,lane_half,lane_Black;
-char                    LR;             //CLANK,Lenchang dircection
+char                    LR,curve_LR;             //CLANK,Lenchang dircection
 char                    mem_lr[] = {'R','R','R','L','R','e'};     //Crank and Lenchange memory
 int                     mem_crk[] = {0,300,290,0,260,-1};           //Crank brake
 int                     n_lr = 0;           //Crank and Lenchange position
@@ -310,6 +312,8 @@ int main( void )
                     pattern = 11;
                     cnt1 = 0;
                     cntGate = 0;
+                    cnt_curve = 0;
+                    handle_value = 0;
 
                     break;
                 }
@@ -403,7 +407,7 @@ int main( void )
                 	   m.handle( -3 );
                 	   m.motor( m.diff(100), 100 );
        				break;
-       			/* 3�ｽ｢ */
+       			/* 3�ｿｽ�ｽｽ�ｽ｢ */
                    case 0x06: /* xxx_ _OOx */
                 	   m.handle( 5 );
                 	   m.motor( 80, m.diff(80) );
@@ -412,7 +416,7 @@ int main( void )
                 	   m.handle( -5 );
                 	   m.motor( m.diff(80), 80 );
         		   break;
-        		/* 4�ｽ｣ */
+        		/* 4�ｿｽ�ｽｽ�ｽ｣ */
                    case 0x02: /* xxx_ _xOx */
                 	   m.handle( 10 );
                 	   m.motor( 60, m.diff(60) );
@@ -507,12 +511,13 @@ int main( void )
              	}else if(sp <10){
             		sp = sp /2;
                	}else if(sp < 12){
-                 	sp = sp*3;
+ //                	sp = sp;
               	}else{
-              		sp = sp*5;
+              		sp = sp*3;
             		cnt1 = 0;
             		if(cntGate>2000)
             		pattern = 22;
+            		cnt_curve = 0;
              	}
 
             	m.handle(pidValue);
@@ -520,6 +525,10 @@ int main( void )
          		break;
 
          	case 22:  /* Big curve */
+
+         		if(cnt_curve > 5)m.run( 100 );
+         		else m.run( 0 );
+
             	if( crank && cntGate > 2000){
             		pattern = 30;
             	}
@@ -562,7 +571,7 @@ int main( void )
                         break;
                }
                m.handle(c.SenVal_Center);
-               m.motor2(30,30);
+               m.motor2(50,50);
             break;
             case 32:
                 if( crank_turn == -1 || cnt_dammy > 2000){
@@ -572,7 +581,7 @@ int main( void )
                         break;
                }
                 m.handle(c.SenVal_Center);
-                m.motor2(20,20);
+                m.motor2(25,25);
             break;
 
             case 33:
@@ -642,12 +651,12 @@ int main( void )
                     if(LR == 'L'){
                         /* Left lane change */
                     	m.handle( -13 );
-                    	m.run( 40 );
+                    	m.run( 50 );
 //                    	m.motor2( 30,20 );
                     }else{
                         /* Right lane change */
                     	m.handle( 13 );
-                    	m.run( 40 );
+                    	m.run( 50 );
 //                    	m.motor2( 20,30 );
                     }
                     pattern = 525;
@@ -659,7 +668,7 @@ int main( void )
             	if( LR == 'L'){
             		if(c.SenVal_Center < -10 && c.SenVal_Center > -20 && c.SenVal_Center != 0){
             			m.handle( 0 );
-            			m.run( 40 );
+            			m.run( 50 );
             		}
             		if(c.SenVal_Center < -5 && c.SenVal_Center > -10 && c.SenVal_Center != 0){
             			pattern = 53;
@@ -669,7 +678,7 @@ int main( void )
             	if( LR == 'R'){
             		if(c.SenVal_Center < 20 && c.SenVal_Center > 10 && c.SenVal_Center != 0){
                     	m.handle( 0 );
-                    	m.run( 40 );
+                    	m.run( 50 );
             		}
                		if(c.SenVal_Center < 10 && c.SenVal_Center > 5 && c.SenVal_Center != 0){
                			pattern = 53;
@@ -919,6 +928,7 @@ void intTimer( void )
     cnt0++;
     cnt1++;
     cntGate++;
+    cnt_curve++;
     cnt_dammy++;
 
     /* field check */
@@ -955,6 +965,7 @@ void intTimer( void )
             if( !initFlag ) c.SenVal8	= c.sensor_process8();
             if( !initFlag ) c.SenVal_Center	= c.sensor_process_Center();
             if( !initFlag ) pidValue	= c.PID_process();
+            if( !initFlag ) handle_value +=pidValue;
           break;
         case 8:
             crank_turn = c.Crank_Turn_Point();
@@ -1110,77 +1121,6 @@ unsigned char pushsw_get( void )
 }
 
 //******************************************************************//
-// functions ( on Shield board )
-//*******************************************************************/
-//------------------------------------------------------------------//
-//Dipsw get Function
-//------------------------------------------------------------------//
-//unsigned char dipsw_get( void )
-//{
- //   return( dipsw.read() & 0x0f );
-//    return 7;
-//}
-
-//------------------------------------------------------------------//
-// RightCrank Check
-// Return values: 0: no triangle mark, 1: Triangle mark
-//------------------------------------------------------------------//
-/*
-int RightCrankCheck( int percentage )
-{
-    int ret;
-
-    ret = 0;
-    if( RightCrank.p >= percentage ) {
-        ret = 1;
-    }
-
-    return ret;
-}
-
-int LeftCrankCheck( int percentage )
-{
-    int ret;
-
-    ret = 0;
-    if( LeftCrank.p >= percentage ) {
-        ret = 1;
-    }
-
-    return ret;
-}
-*/
-//------------------------------------------------------------------//
-// RightLaneChange Check
-// Return values: 0: no triangle mark, 1: Triangle mark
-//------------------------------------------------------------------//
-
-/*
-int RightLaneChangeCheck( int percentage )
-{
-    int ret;
-
-    ret = 0;
-    if( RightLaneChange.p >= percentage ) {
-        ret = 1;
-    }
-
-    return ret;
-}
-
-int LeftLaneChangeCheck( int percentage )
-{
-    int ret;
-
-    ret = 0;
-    if( LeftLaneChange.p >= percentage ) {
-        ret = 1;
-    }
-
-    return ret;
-}
-*/
-//******************************************************************//
 // Debug functions
 //*******************************************************************/
 //------------------------------------------------------------------//
@@ -1218,8 +1158,10 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
     pc.printf( "sensor_inp = 0x%2x\n\r", c.sensor_inp8(MASK4_4) );
 //      pc.printf( "wide = %3d\n\r", wide );
 //      pc.printf( "dipsw = %3d\n\r", m.sw_data );
-    pc.printf( "Center = %3d\n\r", c.SenVal_Center );
-    pc.printf( "LaneChangeHalf %3d\n\r",c.LaneChangeHalf());
+    pc.printf( "pidValue = %3d\n\r", pidValue );
+    pc.printf( "handle_value %3d\n\r",handle_value);
+//    pc.printf( "Center = %3d\n\r", c.SenVal_Center );
+//    pc.printf( "LaneChangeHalf %3d\n\r",c.LaneChangeHalf());
 //    pc.printf( "LaneChangeBlack %d\n\r",c.LaneChangeBlack());
 //    pc.printf( "center_inp = 0x%02x\n\r", center_inp() );
 //    pc.printf( "threshold= %d\n\r", Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate)));
@@ -1249,6 +1191,10 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
     }
 
     pc.printf( "\033[%dA", VW );
+
+    if(handle_value>40*15)handle_value=40*15;
+    if(handle_value<-40*15)handle_value=-40*15;
+    m.handle(handle_value/15);
 }
 
 //------------------------------------------------------------------//
