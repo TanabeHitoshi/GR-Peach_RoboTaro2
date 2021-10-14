@@ -6,8 +6,8 @@
 
 //Servo PWM cycle
 #define     SERVO_PWM_CYCLE     33332   /* SERVO PWM period         */
-/* 16ms   P0��/16 = 0.48us   */
-#define     SERVO_CENTER        3100    /* 1.5ms / 0.48us - 1 = 3124*/
+/* 16ms   P0�ｿｽ�ｿｽ/16 = 0.48us   */
+#define     SERVO_CENTER        3180    /* 1.5ms / 0.48us - 1 = 3124*/
 #define     HANDLE_STEP         18      /* 1 degree value           */
 
 //volatile int            handle_buff;    /* diff function only       */

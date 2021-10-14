@@ -6,8 +6,8 @@
 
 DigitalOut  Left_motor_signal(P4_6);    /* Used by motor function   */
 DigitalOut  Right_motor_signal(P4_7);   /* Used by motor function   */
-BusIn       dipsw( P7_15, P8_1, P2_9, P5_0 ); /* SW1 on Shield board */
-//BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
+//BusIn       dipsw( P7_15, P8_1, P2_9, P5_0 ); /* SW1 on Shield board */
+BusIn       dipsw( P7_15, P8_1, P2_9, P2_10 ); /* SW1 on Shield board */
 
 Drive::Drive()
 {
