@@ -504,7 +504,7 @@ int main( void )
             		cnt1 = 0;
                     break;
             	}
-            	if( lane_half == 2 && cntGate > 2000 && underPass == 0){
+            	if( lane_half == 1 && cntGate > 2000 && underPass == 0){
             		pattern = 50;
             		break;
             	}
@@ -547,7 +547,7 @@ int main( void )
             	if( crank && cntGate > 2000){
             		pattern = 30;
             	}
-            	if( lane_half == 2 ){
+            	if( lane_half == 1 ){
             		pattern = 50;
             		break;
             	}
@@ -763,7 +763,8 @@ int main( void )
                 }
                 break;
             case 1020:
-                pc.printf("%d,%4d,  0x%2x,%4d,%4d,%4d\r\n",m_number,memory[m_number][0],memory[m_number][1],memory[m_number][2],memory[m_number][3],memory[m_number][4]);
+//                pc.printf("%d,%4d,  0x%2x,%4d,%4d,%4d\r\n",m_number,memory[m_number][0],memory[m_number][1],memory[m_number][2],memory[m_number][3],memory[m_number][4]);
+                pc.printf("%d,%4d,%4d,%4d,%4d,%4d\r\n",m_number,memory[m_number][0],memory[m_number][1],memory[m_number][2],memory[m_number][3],memory[m_number][4]);
                 m_number++;
                 if(m_number > 10000) pattern = 1030;
                 break;
@@ -991,8 +992,8 @@ void intTimer( void )
             break;
         case 9:
             lane_half = c.LaneChangeHalf();
-//            for(dint i=15;i<30;i++)pc.printf( "width[%d] = %d\n\r", i,c.width[i] );
-//            pc.printf( "lane_half = %d  l_START = %d  l_STOP = %d\n\r\n\r",lane_half,c.l_START,c.l_STOP);
+//            for(int i=15;i<30;i++)pc.printf( "width[%d] = %d start = %d  stop = %d \n\r", i,c.width[i],c.Start[i],c.Stop[i] );
+//            pc.printf( "lane_half = %d  Max_Line = %d up_Center = %d .down_Center = %d\n\r\n\r",lane_half,c.Max_Line,c.up_Center,c.down_Center);
             lane_Black = c.LaneChangeBlack();
            break;
         case 10:
@@ -1005,8 +1006,9 @@ void intTimer( void )
                 memory[m_number][1] = c.wide;
  //               memory[m_number][1] = c.sensor_inp8(MASK4_4);
 //                memory[m_number][2] = c.SenVal_Center;
-                memory[m_number][2] = lane_half;
-                memory[m_number][3] = Threshold_Ave;
+                memory[m_number][2] = c.SenVal_Center;
+                memory[m_number][3] = lane_half;
+//                memory[m_number][3] = Threshold_Ave;
                 memory[m_number][4] = threshold_buff;
                 m_number++;
                 if(m_number > 10000)m_number = 10000;
@@ -1199,7 +1201,7 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
 //    pc.printf( "threshold= %d\n\r", Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate)));
 //      pc.printf( "RightCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightCrankCheck(80), RightCrank.p, RightCrank.x, RightCrank.y );
 //    pc.printf( "lane_black = %3d\n\r",c.LaneChangeBlack());
-    pc.printf( "lane_Half = %2d\n\r",LaneChangeHalf( c.ImageBinary, (PIXEL_HW * Rate), (PIXEL_VW * Rate)));
+    pc.printf( "lane_Half = %2d\n\r",c.LaneChangeHalf());
 
 //    pc.printf( "RightLaneChange = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightLaneChangeCheck(80), RightLaneChange.p, RightLaneChange.x, RightLaneChange.y );
 //    pc.printf( "LeftCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", LeftCrankCheck(80), LeftCrank.p, LeftCrank.x, LeftCrank.y );
