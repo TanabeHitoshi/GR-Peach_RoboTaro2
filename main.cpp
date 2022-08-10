@@ -124,6 +124,8 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW );
 void ImageData_Serial_Out3( unsigned char *ImageData, int HW, int VW, int color_pattern );
 void ImageData_Serial_Out4( unsigned char *ImageData, int HW, int VW );
 
+void init_MTU2_RotaryEncoder( void );
+
 //------------------------------------------------------------------//
 //Global variable (NTSC-video)
 //------------------------------------------------------------------//
@@ -160,8 +162,10 @@ int             Sen1Px[5];
 volatile unsigned long  cnt0;           /* Used by timer function   */
 volatile unsigned long  cnt1;           /* Used within main         */
 volatile unsigned long  cntGate;           /* Used within main         */
+volatile unsigned long  cntFaling;           /* Used within main         */
 volatile long  cnt_curve;           /* Used curve         */
 volatile long  cnt_dammy;           /* Used within main         */
+volatile long  cntUnder;           /* Used within main         */
 volatile int            pattern;        /* Pattern numbers          */
 
 volatile int            led_pattern;    /* led_m_process function only */
@@ -180,8 +184,15 @@ char                    mem_lr[] = {'R','R','R','L','R','e'};     //Crank and Le
 int                     mem_crk[] = {0,300,290,0,260,-1};           //Crank brake
 int                     n_lr = 0;           //Crank and Lenchange position
 char					fall_flag;			//Detects fall from the course [1]->non [0]->on
-int Threshold_value[20];
+int Threshold_value[50];
 int Threshold_Ave,k=0,underPass = 0;
+int LeneChange_time;
+
+//Rotary Encoder
+volatile long           lEncoderTotal;  /* Integrated value         */
+volatile int            iEncoder;       /* current value            */
+volatile unsigned int   uEncoderBuff;   /* last count               */
+volatile long           lEncoderLine;   /* Integrated value         */
 
 //******************************************************************//
 // Main function
@@ -189,14 +200,12 @@ int Threshold_Ave,k=0,underPass = 0;
 int main( void )
 {
     volatile int    Number;             /* Serial Debug Mode only   */
-    int	curve_handle;
 
     initFlag = 1;                       /* Initialization start     */
     int sp;
     int hd;
-
-
     fall_flag = 0;
+    int LeneChange_state,LeneChange_count;
 
     /* Camera start */
     init_Camera();
@@ -207,13 +216,14 @@ int main( void )
 
     interrput.attach(&intTimer, 0.001);
     pc.baud(230400);
-
+    init_MTU2_RotaryEncoder();
     /* Initialize Micon Car state */
     m.handle( 0 );
     m.motor( 0, 0 );
     led_out( 0x0 );
     led_m_set( STOP );
 
+	cntFaling = 0;
 
 //    threshold_buff = Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
     threshold_buff = THRESHOLD;
@@ -228,7 +238,7 @@ int main( void )
     //LeftLaneChange.sdevi = Standard_Deviation(  LeftLaneChange.binary,  LeftLaneChange.devi,  LeftLaneChange.w,  LeftLaneChange.h );
 
     initFlag = 0;                       /* Initialization end       */
-
+    c.y_center = 20;
     /* Debug Program */
     if( user_button_get() ) {
         led_m_set( DEBUG );
@@ -314,20 +324,32 @@ int main( void )
                     led_out( 0x0 );
                     led_m_set( RUN );
 //                    wait(2.0);
-                    pattern = 11;
+                    pattern = 10;
                     cnt1 = 0;
                     cntGate = 0;
                     cnt_curve = 0;
                     handle_value = 0;
-
+                    LeneChange_state = 0;
+                    LeneChange_count = 0;
+                    LeneChange_time = 0;
                     break;
                 }
-                if( cnt1 < 100 ) {
-                    led_out( 0x1 );
-                } else if( cnt1 < 200 ) {
-                    led_out( 0x2 );
-                } else {
-                    cnt1 = 0;
+                if(bar){
+					if( cnt1 < 100 ) {
+						led_out( 0x1 );
+					} else if( cnt1 < 200 ) {
+						led_out( 0x2 );
+					} else {
+						cnt1 = 0;
+					}
+                }else{
+					if( cnt1 < 1000 ) {
+						led_out( 0x1 );
+					} else if( cnt1 < 2000 ) {
+						led_out( 0x2 );
+					} else {
+						cnt1 = 0;
+					}
                 }
                 break;
             case 1:/* Camera check */
@@ -412,7 +434,7 @@ int main( void )
                 	   m.handle( -3 );
                 	   m.motor( m.diff(100), 100 );
        				break;
-       			/* 3�ｿｽ�ｽｽ�ｽ｢ */
+       			/* 3�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｿ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽ｢ */
                    case 0x06: /* xxx_ _OOx */
                 	   m.handle( 5 );
                 	   m.motor( 80, m.diff(80) );
@@ -421,7 +443,7 @@ int main( void )
                 	   m.handle( -5 );
                 	   m.motor( m.diff(80), 80 );
         		   break;
-        		/* 4�ｿｽ�ｽｽ�ｽ｣ */
+        		/* 4�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｿ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽ｣ */
                    case 0x02: /* xxx_ _xOx */
                 	   m.handle( 10 );
                 	   m.motor( 60, m.diff(60) );
@@ -488,84 +510,93 @@ int main( void )
          		m.handle(0);
          		m.run( 50 );
  */
-         		if(lane_Black != -1)pattern = 11;
-                if( cnt1 < 50 ) {
+         		if(bar == 0){
+         			wait(0.25);
+         			cntUnder = 2000;
+         			pattern = 11;
+         		}
+                if( cnt1 < 100 ) {
                     led_out( 0x1 );
-                } else if( cnt1 < 100 ) {
+                } else if( cnt1 < 1000 ) {
                     led_out( 0x2 );
                 } else {
                     cnt1 = 0;
                 }
          		break;
+
          	case 11:
-            	if( crank && cntGate > 500 ){
-   //          	if( crank && cntGate > 500 && underPass == 0){
-                    		pattern = 30;
+            	if( crank && cntGate > 500 && underPass == 0){
+            		c.y_center = 20;
+            		pattern = 30;
             		cnt1 = 0;
                     break;
             	}
-            	if( lane_half == 1 && cntGate > 2000 && underPass == 0){
-            		pattern = 50;
-            		break;
+            	if( lane_half != -1 && cntGate > 1000  && cntUnder > 1700  /*&& LeneChange_state == 0*/){
+            		LeneChange_count++;
+            		if( LeneChange_count == 5){
+            			c.y_center = 20;
+            			pattern = 50;
+            			break;
+            		}
             	}
 
             	if(c.SenVal_Center < 0) sp = -c.SenVal_Center;
             	else				  sp = c.SenVal_Center;
 
             	if( sp < 5){
+            		c.y_center = 20;
             		sp = 0;
              	}else if(sp <10){
             		sp = sp /2;
-               	}else if(sp < 15){
- //                	sp = sp;
-              	}else{
-//              		sp = sp*4;
-              		m.motor2(-100,-100);
+            		c.y_center = 20;
+             	}else if(sp < 12){
+                 	sp = sp*3/2;
+                 	c.y_center = 20;
+             	}else if(sp < 15){
+                 	sp = sp*2;
+                 	c.y_center = 20;
+             	}else{
+              		c.y_center = 25;
+              		sp = sp*3;
             		cnt1 = 0;
-            		if(cntGate>2000)
+//                	if(c.SenVal_Center < 0)  m.handle(-40);
+//                	else				  m.handle(40);;
+
+                	if(cntGate>2000)
             		pattern = 22;
-            		if(pidValue > 0) curve_handle = 30;
-            		else curve_handle = -30;
             		cnt_curve = 0;
-            		break;
+//            		break;
              	}
 
-            	if(threshold_buff < 150){
-            		m.handle(0);
-            	}else{
-            		m.handle(pidValue -3);
-            	}
+            	m.handle(pidValue -1);
             	m.run( 100 - sp );
          		break;
 
          	case 22:  /* Big curve */
 
-         		if(cnt_curve > 13)m.run( 90 );
-         		else m.motor2(-100,-100);
-//         		else m.run( -100 );
-         		m.handle(curve_handle);
-            	if( crank && cntGate > 2000){
+         		if(cnt_curve > 10)m.run( 70 );
+         		else m.run( -50 );
+
+            	if( crank && cntGate > 500 && underPass == 0){
             		pattern = 30;
             	}
-            	if( lane_half == 1 ){
-            		pattern = 50;
+            	if( lane_half != -1 && LeneChange_state == 0){
+//            		pattern = 50;
             		break;
             	}
-            	if(cnt1 > 100)m.run(50);
+//            	if(cnt1 > 100)m.run(100);
 
          	   if(c.SenVal_Center < 5 && c.SenVal_Center > -5 && c.SenVal_Center != 0 ) {
          	            pattern = 11;
          	   }
            		break;
-
-/* Crank processing at 1st process */
             case 30:
                 led_m_set( CRANK );
                 led_out( 0x1 );
                 m.handle(c.SenVal_Center);
                 m.motor(-100,-100);
 //                if( cnt1 > mem_crk[n_lr] ) {
-                if( cnt1 > 160 ) {
+                if( cnt1 > 150 ) {
                     pattern = 31;
                     cnt1 = 0;
                 }
@@ -580,7 +611,7 @@ int main( void )
                         break;
                }
                if( crank_turn == 2){
-            	   	   	LR = 'R';
+                        LR = 'R';
                         pattern = 33;
                         cnt1 = 0;
                         cnt_dammy = 0;
@@ -588,7 +619,7 @@ int main( void )
                         break;
                }
                m.handle(c.SenVal_Center);
-               m.motor2(40,40);
+               m.motor2(30,30);
             break;
             case 32:
                 if( crank_turn == -1 || cnt_dammy > 2000){
@@ -604,17 +635,17 @@ int main( void )
             case 33:
                 if(LR == 'L'){
                     /* Left crank */
-                	m.handle( -40 );
-                	m.motor2( 0,60 );
-                    if( c.sensor_inp8(MASK2_0) && cnt1 > 500){
+                	m.handle( -45 );
+                	m.motor2( 0,50 );
+                    if( c.sensor_inp8(MASK0_2) && cnt1 > 500){
                     	pattern = 11;
                     	cnt1 = 0;
                     }
                 }else{
                     /* Right crank */
-                	m.handle( 40 );
+                	m.handle( 45 );
                 	m.motor2( 60,0 );
-                    if( c.sensor_inp8(MASK0_2) && cnt1 > 500){
+                    if( c.sensor_inp8(MASK2_0) && cnt1 > 500){
                     	pattern = 11;
                     	cnt1 = 0;
                     	fall_flag = 0;
@@ -626,7 +657,7 @@ int main( void )
  /* Lane change processing at 1st process */
             case 50:
             	m.handle( 0 );
-            	m.motor(-50,-50);
+            	m.motor(-30,-30);
 //            	m.run( 0 );
 //                LR = mem_lr[n_lr];
                 if( lane_half == 1){
@@ -643,12 +674,14 @@ int main( void )
                 led_out( 0x01 );
                 if( LR == 'L' ) m.handle(c.SenVal_Center -10);
                 else            m.handle(c.SenVal_Center +10);
-                m.run(50);
+                m.run2(30);
+/*
             	if( crank ){
             		pattern = 30;
             		cnt1 = 0;
                     break;
             	}
+*/
             	if( lane_Black ){
 					if(LR == 'L'){
 						/* Right lane change */
@@ -667,13 +700,13 @@ int main( void )
                 if( cnt1 > 350 ) {
                     if(LR == 'L'){
                         /* Left lane change */
-                    	m.handle( -15 );
-                    	m.run( 50 );
+                    	m.handle( -8 );
+                    	m.run2( 15 );
 //                    	m.motor2( 30,20 );
                     }else{
                         /* Right lane change */
-                    	m.handle( 15 );
-                    	m.run( 50 );
+                    	m.handle( 8);
+                    	m.run2( 15 );
 //                    	m.motor2( 20,30 );
                     }
                     pattern = 525;
@@ -685,9 +718,9 @@ int main( void )
             	if( LR == 'L'){
             		if(c.SenVal_Center < -10 && c.SenVal_Center > -20 && c.SenVal_Center != 0){
             			m.handle( 0 );
-            			m.run( 60 );
+            			m.run2( 35 );
             		}
-            		if(c.SenVal_Center < -5 && c.SenVal_Center > -10 && c.SenVal_Center != 0){
+            		if(c.SenVal_Center < 5 && c.SenVal_Center > -10 && c.SenVal_Center != 0){
             			pattern = 53;
             		}
 
@@ -695,7 +728,7 @@ int main( void )
             	if( LR == 'R'){
             		if(c.SenVal_Center < 20 && c.SenVal_Center > 10 && c.SenVal_Center != 0){
                     	m.handle( 0 );
-                    	m.run( 50 );
+                    	m.run2( 35);
             		}
                		if(c.SenVal_Center < 10 && c.SenVal_Center > 5 && c.SenVal_Center != 0){
                			pattern = 53;
@@ -719,8 +752,11 @@ int main( void )
 
             case 54:
             	m.handle(c.SenVal_Center *2);
-            	m.motor( 60 , 60 );
+            	m.motor2( 50 , 50 );
             	if(cnt1 > 1200){
+            		LeneChange_state = 1;
+            		LeneChange_count = 0;
+            		LeneChange_time++;
             		pattern = 11;
             	}
             break;
@@ -763,8 +799,7 @@ int main( void )
                 }
                 break;
             case 1020:
-//                pc.printf("%d,%4d,  0x%2x,%4d,%4d,%4d\r\n",m_number,memory[m_number][0],memory[m_number][1],memory[m_number][2],memory[m_number][3],memory[m_number][4]);
-                pc.printf("%d,%4d,%4d,%4d,%4d,%4d\r\n",m_number,memory[m_number][0],memory[m_number][1],memory[m_number][2],memory[m_number][3],memory[m_number][4]);
+                pc.printf("%d,%4d,  %d,%4d,%6d,%4d\r\n",m_number,memory[m_number][0],memory[m_number][1],memory[m_number][2],memory[m_number][3],memory[m_number][4]);
                 m_number++;
                 if(m_number > 10000) pattern = 1030;
                 break;
@@ -949,11 +984,16 @@ void intTimer( void )
     cntGate++;
     cnt_curve++;
     cnt_dammy++;
+    cntFaling++;
+    cntUnder++;
+    if(cntUnder > 2000)cntUnder = 2000;
 
     /* field check */
     if( vfield_count2 != vfield_count2_buff ) {
         vfield_count2_buff = vfield_count2;
         counter = 0;
+        // Servo PWM counter clear
+//        MTU2TCNT_0 = 0;
     }
 
     /* Top field / bottom field */
@@ -979,6 +1019,7 @@ void intTimer( void )
         case 6:
             Binarization( ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate), c.ImageBinary, threshold_buff );
             bar = c.StartBarCheck();
+//            pc.printf( "bar = %d\n\r\n\r",bar);
             break;
         case 7:
             if( !initFlag ) c.SenVal8	= c.sensor_process8();
@@ -992,51 +1033,95 @@ void intTimer( void )
             break;
         case 9:
             lane_half = c.LaneChangeHalf();
-//            for(int i=15;i<30;i++)pc.printf( "width[%d] = %d start = %d  stop = %d \n\r", i,c.width[i],c.Start[i],c.Stop[i] );
-//            pc.printf( "lane_half = %d  Max_Line = %d up_Center = %d .down_Center = %d\n\r\n\r",lane_half,c.Max_Line,c.up_Center,c.down_Center);
+ //           for( i=15;i<30;i++)pc.printf( "width[%d] = %d Start=%d Stop=%d\n\r", i,c.width[i],c.Start[i],c.Stop[i] );
+ //          for( i=10;i<30;i++)pc.printf( "width[%d] = %d \n\r", i,c.width[i] );
+ //          pc.printf( "lane_half = %d  width_Max = %d \n\r\n\r",lane_half,c.width_Max);
             lane_Black = c.LaneChangeBlack();
            break;
         case 10:
+            /* Rotary encoder process */
+            i = MTU2TCNT_1;
+            if( ( MTU2TSR_1 & 0x90 ) == 0x90 ) {
+                // Overflow ( TCFD:1 TCFV:1 )
+                // Flag clear
+                MTU2TSR_1 &= 0xef;
+                iEncoder   = ( i - uEncoderBuff ) + 65535;
+            } else if( ( MTU2TSR_1 & 0x20 ) == 0x20 ) {
+                // Underflow ( TCFD:0 TCFU:1 )
+                // Flag clear
+                MTU2TSR_1 &= 0xdf;
+                iEncoder   = ( i - uEncoderBuff ) - 65535;
+            } else {
+                iEncoder   = i - uEncoderBuff;
+            }
+            lEncoderTotal += iEncoder;
+            uEncoderBuff   = i;
+
             break;
         case 11:
             break;
         case 12:
-           if(pattern > 9 && pattern < 1000) {
+           if(pattern > 10 && pattern < 1000) {
                 memory[m_number][0] = pattern;
-                memory[m_number][1] = c.wide;
- //               memory[m_number][1] = c.sensor_inp8(MASK4_4);
-//                memory[m_number][2] = c.SenVal_Center;
-                memory[m_number][2] = c.SenVal_Center;
-                memory[m_number][3] = lane_half;
-//                memory[m_number][3] = Threshold_Ave;
-                memory[m_number][4] = threshold_buff;
+//                memory[m_number][1] = c.sensor_inp8(MASK4_4);
+                memory[m_number][1] = c.SenVal_Center;
+//                memory[m_number][2] = c.wide;
+//                memory[m_number][2] = underPass;cntGate
+                memory[m_number][2] = cntGate;
+//                memory[m_number][2] = LeneChange_count;
+                memory[m_number][3] = cntUnder;
+//                memory[m_number][3] = c.width_Max;
+                memory[m_number][4] =lane_half;
                 m_number++;
                 if(m_number > 10000)m_number = 10000;
             }
             break;
         case 13:
             threshold_buff = Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate));
-			Threshold_value[k] = threshold_buff;
-			k++;
-			if(k > 20)k = 0;
-			for(i=0;i < 20;i++){
-				Threshold_Ave +=Threshold_value[i];
-			}
-			Threshold_Ave /= 20;
-            if(threshold_buff - Threshold_Ave > -15){
-				underPass = 0;
-            }else{
-            	underPass = 1;
-            }
+//	          pc.printf( "threshold = %d Threshold_Ave = %d \n\r\n\r",threshold_buff,Threshold_Ave);
+
+           if(threshold_buff - Threshold_Ave > -15 ){
+        	   Threshold_value[k] = threshold_buff;
+        	   k++;
+        	   if(k > 50)k = 0;
+
+        	   Threshold_Ave = 0;
+        	   for(i=0;i < 50;i++){
+//		       		pc.printf( "Threshold_value[%d] = %d \n\r",i,Threshold_value[i]);
+        		   Threshold_Ave +=Threshold_value[i];
+            	}
+            	Threshold_Ave /= 50;
+//	          	pc.printf( "clc \n\r\n\r");
+            		underPass = 0;
+           }else{
+        	   if(LeneChange_time == 1){
+        		   cntUnder = 0;
+        		   underPass = 1;
+        	   }
+           }
+
             break;
         case 14:
-        	if( fall_flag == 0 && c.wide == 99 && lane_Black == 1) pattern = 200;
-            break;
+        	if( fall_flag == 0 && c.wide == 99 && lane_Black == 1){
+        		cntFaling++;
+
+        	}else{
+        		cntFaling = 0;
+        	}
+        	if(cntFaling > 1000 && pattern > 10)pattern = 200;
+
+        	// Servo PWM counter clear
+//            MTU2TCNT_0 = 0;
+
+        	break;
+        case 15:
+
+        	break;
         default:
             break;
     }
 
-    /* LED(rib) on the GR-peach board */
+    /* LED(rgb) on the GR-peach board */
     led_m_process();
 }
 
@@ -1189,24 +1274,27 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
 
     //Add display
     pc.printf( "\n\r" );
-    pc.printf( "sensor_inp = 0x%2x\n\r", c.sensor_inp8(MASK4_4) );
-//      pc.printf( "wide = %3d\n\r", wide );
-//      pc.printf( "dipsw = %3d\n\r", m.sw_data );
+//    pc.printf( "sensor_inp = 0x%2x\n\r", c.sensor_inp8(MASK4_4) );
+//      pc.printf( "wide = %3d\n\r",c.wide );
+      pc.printf( "lEnc = %5d %5d\n\r",iEncoder,lEncoderTotal);
+
+      //      pc.printf( "dipsw = %3d\n\r", m.sw_data );
+//      pc.printf( "bar = %3d\n\r",bar );
     pc.printf( "pidValue = %3d\n\r", pidValue );
-    pc.printf( "handle_value %3d\n\r",handle_value);
-//    pc.printf( "Center = %3d\n\r", c.SenVal_Center );
+//    pc.printf( "handle_value %3d\n\r",handle_value);
+    pc.printf( "Center = %3d\n\r", c.SenVal_Center );
 //    pc.printf( "LaneChangeHalf %3d\n\r",c.LaneChangeHalf());
 //    pc.printf( "LaneChangeBlack %d\n\r",c.LaneChangeBlack());
 //    pc.printf( "center_inp = 0x%02x\n\r", center_inp() );
 //    pc.printf( "threshold= %d\n\r", Threshold_process(ImageComp_B, (PIXEL_HW * Rate), (PIXEL_VW * Rate)));
 //      pc.printf( "RightCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightCrankCheck(80), RightCrank.p, RightCrank.x, RightCrank.y );
-//    pc.printf( "lane_black = %3d\n\r",c.LaneChangeBlack());
+    pc.printf( "lane_black = %3d\n\r",c.LaneChangeBlack());
     pc.printf( "lane_Half = %2d\n\r",c.LaneChangeHalf());
 
 //    pc.printf( "RightLaneChange = %01d, = %3d%%, X = %2d, Y = %2d\n\r", RightLaneChangeCheck(80), RightLaneChange.p, RightLaneChange.x, RightLaneChange.y );
 //    pc.printf( "LeftCrank      = %01d, = %3d%%, X = %2d, Y = %2d\n\r", LeftCrankCheck(80), LeftCrank.p, LeftCrank.x, LeftCrank.y );
 //    pc.printf( "LeftLaneChange = %01d, = %3d%%, X = %2d, Y = %2d\n\r", LeftLaneChangeCheck(80), LeftLaneChange.p, LeftLaneChange.x, LeftLaneChange.y );
-    pc.printf( "Crank_Mark_Check %d\n\r",c.Crank_Mark_Check());
+//    pc.printf( "Crank_Mark_Check %d\n\r",c.Crank_Mark_Check());
 //        pc.printf( "CrankturnPoint %d\n\r",c.Crank_Turn_Point());
     pc.printf( "\n\r" );
     VW += 6;
@@ -1345,7 +1433,41 @@ void ImageData_Serial_Out4( unsigned char *ImageData, int HW, int VW )
     }
     pc.printf( "\033[%dA", VW );
 }
+//----------------------------------------------------------------------//
+//MTU2_1
+//Phase coefficient mode
+//TCLKA(P1_0 ) :Pulse A
+//TCLKB(P1_10) :Pulse B
+//----------------------------------------------------------------------//
+void init_MTU2_RotaryEncoder( void )
+{
+    /* Port setting for S/W I/O Contorol */
+    GPIOPIBC1  &= 0xfbfe;               /* Input buffer prohibition     */
+    GPIOPBDC1  &= 0xfbfe;               /* Interactive mode prohibition */
+    GPIOPM1    |= 0x0401;               /* P1_0,P1_10:Input mode        */
+    GPIOPMC1   &= 0xfbfe;               /* P1_0,P1_10:Port mode         */
+    GPIOPIPC1  &= 0xfbfe;               /* S/W I/O control mode         */
 
+    GPIOPFC1   &= 0xfffe;               /* Choice of the pin function   */
+    GPIOPFC1   |= 0x0400;               /* Choice of the pin function   */
+    GPIOPFCE1  |= 0x0401;               /* Choice of the pin function   */
+    GPIOPFCAE1 &= 0xfbfe;               /* Choice of the pin function   */
+
+    GPIOPIPC1  |= 0x0401;               /* Direct I/O control mode      */
+    GPIOPMC1   |= 0x0401;               /* P1_0,P1_10:Double mode       */
+                                        /* TCLKA(P1_0), TCLKB(P1_10)    */
+
+    /* Mosule stop 33(MTU2) canceling */
+    CPGSTBCR3  &= 0xf7;
+
+    /* Rotary Encoder          */
+    /* MTU2_1 A(P1_0) B(P1_10) */
+    MTU2TCR_1   = 0x14;                 /* TCLKA(P1_0), Both edge count */
+                                        /* Ignored, when phase coefficient mode. */
+    MTU2TMDR_1  = 0x05;                 /* 0x02:PWM mode 1              */
+                                        /* 0x04:Phase coefficient mode 1*/
+    MTU2TSTR   |= 0x02;                 /* TCNT_1 Start                 */
+}
 //------------------------------------------------------------------//
 // End of file
 //------------------------------------------------------------------//

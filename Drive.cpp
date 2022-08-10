@@ -25,6 +25,14 @@ void Drive::run( int accele )
         motor(diff(accele),accele);
 
 }
+void Drive::run2( int accele )
+{
+    if(handle_buff > 0)
+        motor2(accele,diff(accele));
+    else
+        motor2(diff(accele),accele);
+
+}
 
 //Deff fanction
 //------------------------------------------------------------------//
@@ -110,12 +118,13 @@ void Drive::init_MTU2_PWM_Servo( void )
     CPGSTBCR3  &= 0xf7;
 
     /* MTU2_0 (Motor PWM) */
-    MTU2TCR_0   = 0x22;                 /* TCNT Clear(TGRA), P0ƒÓ/16 */
+    MTU2TCR_0   = 0x022;  //0x22               /* TCNT Clear(TGRA), P0ƒÓ/16 */
     MTU2TIORH_0 = 0x52;                 /* TGRA L>H, TGRB H>L       */
     MTU2TMDR_0  = 0x32;                 /* TGRC and TGRD = Buff-mode*/
     /* PWM-mode1                */
     MTU2TCNT_0  = 0;                    /* TCNT0 Set 0              */
     MTU2TGRA_0  = MTU2TGRC_0 = SERVO_PWM_CYCLE;
+//    MTU2TGRA_0  = MTU2TGRC_0 = 2;
     /* PWM-Cycle(16ms)          */
     MTU2TGRB_0  = MTU2TGRD_0 = 0;       /* Servo-motor(P4_0)        */
     MTU2TSTR   |= 0x01;                 /* TCNT_0 Start             */
