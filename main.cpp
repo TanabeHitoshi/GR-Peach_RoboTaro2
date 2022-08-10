@@ -993,7 +993,7 @@ void intTimer( void )
         vfield_count2_buff = vfield_count2;
         counter = 0;
         // Servo PWM counter clear
-//        MTU2TCNT_0 = 0;
+        MTU2TCNT_0 = 0;
     }
 
     /* Top field / bottom field */
