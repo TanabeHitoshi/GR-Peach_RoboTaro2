@@ -17,6 +17,7 @@
 #include "image_process.h"
 #include "Drive.h"
 #include "isCamera.h"
+#include "isEncoder.h"
 //------------------------------------------------------------------//
 //Define
 //------------------------------------------------------------------//
@@ -80,6 +81,7 @@ DigitalOut  LED_2(P2_15);               /* LED2 on the Motor Drive board */
 
 Drive m;
 isCamera c;
+isEncoder e;
 //------------------------------------------------------------------//
 //Prototype(NTSC-video)
 //------------------------------------------------------------------//
@@ -123,8 +125,6 @@ void ImageData_Serial_Out1( unsigned char *ImageData, int HW, int VW );
 void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW );
 void ImageData_Serial_Out3( unsigned char *ImageData, int HW, int VW, int color_pattern );
 void ImageData_Serial_Out4( unsigned char *ImageData, int HW, int VW );
-
-void init_MTU2_RotaryEncoder( void );
 
 //------------------------------------------------------------------//
 //Global variable (NTSC-video)
@@ -188,12 +188,6 @@ int Threshold_value[50];
 int Threshold_Ave,k=0,underPass = 0;
 int LeneChange_time;
 
-//Rotary Encoder
-volatile long           lEncoderTotal;  /* Integrated value         */
-volatile int            iEncoder;       /* current value            */
-volatile unsigned int   uEncoderBuff;   /* last count               */
-volatile long           lEncoderLine;   /* Integrated value         */
-
 //******************************************************************//
 // Main function
 //*******************************************************************/
@@ -216,7 +210,6 @@ int main( void )
 
     interrput.attach(&intTimer, 0.001);
     pc.baud(230400);
-    init_MTU2_RotaryEncoder();
     /* Initialize Micon Car state */
     m.handle( 0 );
     m.motor( 0, 0 );
@@ -1039,23 +1032,7 @@ void intTimer( void )
             lane_Black = c.LaneChangeBlack();
            break;
         case 10:
-            /* Rotary encoder process */
-            i = MTU2TCNT_1;
-            if( ( MTU2TSR_1 & 0x90 ) == 0x90 ) {
-                // Overflow ( TCFD:1 TCFV:1 )
-                // Flag clear
-                MTU2TSR_1 &= 0xef;
-                iEncoder   = ( i - uEncoderBuff ) + 65535;
-            } else if( ( MTU2TSR_1 & 0x20 ) == 0x20 ) {
-                // Underflow ( TCFD:0 TCFU:1 )
-                // Flag clear
-                MTU2TSR_1 &= 0xdf;
-                iEncoder   = ( i - uEncoderBuff ) - 65535;
-            } else {
-                iEncoder   = i - uEncoderBuff;
-            }
-            lEncoderTotal += iEncoder;
-            uEncoderBuff   = i;
+            e.measure();
 
             break;
         case 11:
@@ -1275,8 +1252,8 @@ void ImageData_Serial_Out2( unsigned char *ImageData, int HW, int VW )
     //Add display
     pc.printf( "\n\r" );
 //    pc.printf( "sensor_inp = 0x%2x\n\r", c.sensor_inp8(MASK4_4) );
-//      pc.printf( "wide = %3d\n\r",c.wide );
-      pc.printf( "lEnc = %5d %5d\n\r",iEncoder,lEncoderTotal);
+      pc.printf( "wide = %3d\n\r",c.wide );
+//      pc.printf( "lEnc = %5d %5d\n\r",iEncoder,lEncoderTotal);
 
       //      pc.printf( "dipsw = %3d\n\r", m.sw_data );
 //      pc.printf( "bar = %3d\n\r",bar );
@@ -1433,41 +1410,7 @@ void ImageData_Serial_Out4( unsigned char *ImageData, int HW, int VW )
     }
     pc.printf( "\033[%dA", VW );
 }
-//----------------------------------------------------------------------//
-//MTU2_1
-//Phase coefficient mode
-//TCLKA(P1_0 ) :Pulse A
-//TCLKB(P1_10) :Pulse B
-//----------------------------------------------------------------------//
-void init_MTU2_RotaryEncoder( void )
-{
-    /* Port setting for S/W I/O Contorol */
-    GPIOPIBC1  &= 0xfbfe;               /* Input buffer prohibition     */
-    GPIOPBDC1  &= 0xfbfe;               /* Interactive mode prohibition */
-    GPIOPM1    |= 0x0401;               /* P1_0,P1_10:Input mode        */
-    GPIOPMC1   &= 0xfbfe;               /* P1_0,P1_10:Port mode         */
-    GPIOPIPC1  &= 0xfbfe;               /* S/W I/O control mode         */
 
-    GPIOPFC1   &= 0xfffe;               /* Choice of the pin function   */
-    GPIOPFC1   |= 0x0400;               /* Choice of the pin function   */
-    GPIOPFCE1  |= 0x0401;               /* Choice of the pin function   */
-    GPIOPFCAE1 &= 0xfbfe;               /* Choice of the pin function   */
-
-    GPIOPIPC1  |= 0x0401;               /* Direct I/O control mode      */
-    GPIOPMC1   |= 0x0401;               /* P1_0,P1_10:Double mode       */
-                                        /* TCLKA(P1_0), TCLKB(P1_10)    */
-
-    /* Mosule stop 33(MTU2) canceling */
-    CPGSTBCR3  &= 0xf7;
-
-    /* Rotary Encoder          */
-    /* MTU2_1 A(P1_0) B(P1_10) */
-    MTU2TCR_1   = 0x14;                 /* TCLKA(P1_0), Both edge count */
-                                        /* Ignored, when phase coefficient mode. */
-    MTU2TMDR_1  = 0x05;                 /* 0x02:PWM mode 1              */
-                                        /* 0x04:Phase coefficient mode 1*/
-    MTU2TSTR   |= 0x02;                 /* TCNT_1 Start                 */
-}
 //------------------------------------------------------------------//
 // End of file
 //------------------------------------------------------------------//

@@ -6,7 +6,7 @@
 
 //Servo PWM cycle
 #define     SERVO_PWM_CYCLE     33332   /* SERVO PWM period         */
-/* 16ms   P0�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｿ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽｿ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｿ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽｿ�ｿｽ�ｽｿ�ｽｽ�ｿｽ�ｽｽ�ｽｽ�ｿｽ�ｽｽ�ｽｽ/16 = 0.48us   */
+/* 16ms      */
 //#define     SERVO_CENTER        3160    /* 1.5ms / 0.48us - 1 = 3124*/
 #define     SERVO_CENTER        2950    /* 1.5ms / 0.48us - 1 = 3124*/
 #define     HANDLE_STEP         18      /* 1 degree value           */
